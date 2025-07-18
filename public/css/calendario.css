@@ -1,0 +1,383 @@
+/* calendario.css - Estilos para el módulo de calendario */
+
+/* Contenedor principal del calendario */
+.calendario-container {
+  margin-top: 20px;
+}
+
+/* Navegación del calendario */
+.calendario-navegacion {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.calendario-navegacion h4 {
+  margin: 0;
+  font-weight: 600;
+  color: #333;
+}
+
+/* Tabla del calendario */
+.tabla-calendario {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tabla-calendario thead {
+  background-color: #007bff;
+  color: white;
+}
+
+.tabla-calendario th {
+  padding: 12px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.tabla-calendario td {
+  border: 1px solid #e9ecef;
+  padding: 0;
+  height: 100px;
+  vertical-align: top;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.tabla-calendario td:hover:not(.dia-vacio) {
+  background-color: #f0f8ff;
+}
+
+/* Días del calendario */
+.calendario-dia {
+  width: 14.28%;
+  min-height: 100px;
+}
+
+.dia-vacio {
+  background-color: #f8f9fa;
+  cursor: default;
+}
+
+.dia-hoy {
+  background-color: #e3f2fd !important;
+}
+
+.dia-festivo {
+  background-color: #fff3cd !important;
+}
+
+.numero-dia {
+  padding: 5px 8px;
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.dia-hoy .numero-dia {
+  background-color: #007bff;
+  color: white;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 2px;
+}
+
+/* Festivos en el calendario */
+.festivo-nombre {
+  padding: 2px 5px;
+  background-color: #ffc107;
+  color: #333;
+  font-size: 11px;
+  margin: 2px;
+  border-radius: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Programaciones en el calendario */
+.programaciones-dia {
+  padding: 2px;
+  font-size: 11px;
+}
+
+.programacion-item {
+  padding: 2px 4px;
+  margin: 1px;
+  border-radius: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: white;
+}
+
+.programacion-subir {
+  background-color: #dc3545;
+}
+
+.programacion-bajar {
+  background-color: #28a745;
+}
+
+.programacion-bloquear_arriba,
+.programacion-bloquear_abajo {
+  background-color: #ffc107;
+  color: #333;
+}
+
+.programacion-desbloquear {
+  background-color: #17a2b8;
+}
+
+/* Tabs del calendario */
+.calendario-tabs {
+  margin-bottom: 30px;
+}
+
+.calendario-tabs .nav-link {
+  color: #6c757d;
+  font-weight: 500;
+  padding: 10px 20px;
+  border-radius: 0;
+  border: none;
+  background: none;
+}
+
+.calendario-tabs .nav-link:hover {
+  color: #007bff;
+  background-color: #f8f9fa;
+}
+
+.calendario-tabs .nav-link.active {
+  color: #007bff;
+  background-color: transparent;
+  border-bottom: 3px solid #007bff;
+}
+
+/* Tablas de gestión */
+.tabla-festivos,
+.tabla-programaciones {
+  margin-top: 20px;
+}
+
+.tabla-festivos th,
+.tabla-programaciones th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #495057;
+  border-bottom: 2px solid #dee2e6;
+}
+
+/* Formularios en modales */
+.modal-calendario .form-label {
+  font-weight: 500;
+  color: #495057;
+}
+
+.modal-calendario .form-control,
+.modal-calendario .form-select {
+  border-radius: 4px;
+}
+
+/* Campos de selección múltiple */
+.seleccion-multiple {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  padding: 10px;
+  background-color: #f8f9fa;
+}
+
+.seleccion-multiple .form-check {
+  margin-bottom: 8px;
+}
+
+/* Días de la semana */
+#dias-semana {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+#dias-semana .form-check {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+/* Estados y badges */
+.badge-tipo-festivo {
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.estado-programacion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Logs de programación */
+.tabla-logs {
+  font-size: 14px;
+}
+
+.log-ejecutado {
+  color: #28a745;
+}
+
+.log-error {
+  color: #dc3545;
+}
+
+.log-omitido {
+  color: #6c757d;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .calendario-navegacion {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+  
+  .tabla-calendario td {
+    height: 80px;
+    font-size: 10px;
+  }
+  
+  .numero-dia {
+    font-size: 12px;
+  }
+  
+  .festivo-nombre,
+  .programacion-item {
+    font-size: 9px;
+  }
+  
+  #dias-semana {
+    flex-direction: column;
+  }
+}
+
+/* Animaciones */
+.calendario-dia {
+  transition: all 0.3s ease;
+}
+
+.calendario-dia:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  z-index: 10;
+}
+
+/* Modal de detalles del día */
+.dia-detalle-header {
+  background-color: #007bff;
+  color: white;
+  padding: 20px;
+  margin: -20px -20px 20px -20px;
+  text-align: center;
+}
+
+.dia-detalle-header h5 {
+  margin: 0;
+  font-size: 24px;
+}
+
+/* Tooltips personalizados */
+.calendario-tooltip {
+  position: absolute;
+  background-color: rgba(0,0,0,0.8);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+/* Loading state */
+.calendario-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+}
+
+.calendario-loading .spinner-border {
+  width: 3rem;
+  height: 3rem;
+}
+
+/* Botones de acción rápida */
+.btn-accion-rapida {
+  padding: 4px 8px;
+  font-size: 12px;
+  margin: 0 2px;
+}
+
+/* Indicadores de prioridad */
+.prioridad-alta {
+  border-left: 4px solid #dc3545;
+}
+
+.prioridad-media {
+  border-left: 4px solid #ffc107;
+}
+
+.prioridad-baja {
+  border-left: 4px solid #28a745;
+}
+
+/* Vista de logs */
+.logs-container {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.log-entry {
+  padding: 10px;
+  border-bottom: 1px solid #e9ecef;
+  transition: background-color 0.2s;
+}
+
+.log-entry:hover {
+  background-color: #f8f9fa;
+}
+
+.log-timestamp {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+/* Filtros de programación */
+.filtros-programacion {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.filtros-programacion .form-check-inline {
+  margin-right: 20px;
+}

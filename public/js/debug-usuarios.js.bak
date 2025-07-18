@@ -1,0 +1,33 @@
+// debug-usuarios.js - Archivo temporal para depurar el problema de carga de usuarios
+
+// Verificar que todas las funciones están disponibles
+console.log('=== DEBUG: Verificando funciones de usuarios ===');
+console.log('typeof initUsuariosMejorado:', typeof initUsuariosMejorado);
+console.log('typeof cargarUsuariosMejorado:', typeof cargarUsuariosMejorado);
+console.log('typeof window.cargarUsuariosMejorado:', typeof window.cargarUsuariosMejorado);
+
+// Intentar cargar usuarios manualmente
+console.log('Intentando cargar usuarios manualmente en 3 segundos...');
+setTimeout(() => {
+    console.log('Ejecutando cargarUsuariosMejorado...');
+    if (typeof cargarUsuariosMejorado === 'function') {
+        cargarUsuariosMejorado();
+    } else {
+        console.error('cargarUsuariosMejorado no está disponible');
+    }
+}, 3000);
+
+// Función global para forzar la carga
+window.forzarCargaUsuarios = function() {
+    console.log('Forzando carga de usuarios...');
+    const loading = document.getElementById('loading');
+    if (loading) loading.classList.remove('hidden');
+    
+    if (typeof cargarUsuariosMejorado === 'function') {
+        cargarUsuariosMejorado();
+    } else {
+        console.error('No se puede cargar usuarios - función no disponible');
+    }
+};
+
+console.log('Para forzar la carga de usuarios, ejecute: forzarCargaUsuarios()');

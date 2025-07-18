@@ -1,0 +1,378 @@
+/* responsive.css - Estilos adicionales para hacer responsive el sistema de pilonas */
+
+/* Estilos generales para todos los dispositivos */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.loading {
+  z-index: 9999;
+}
+
+.toast-container {
+  z-index: 9998;
+}
+
+/* Estilos para dispositivos medianos (tablets) */
+@media (max-width: 992px) {
+  .container-fluid {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+  
+  .card-dashboard {
+    margin-bottom: 15px;
+  }
+  
+  #mapa, #mapa-control {
+    height: 400px;
+  }
+  
+  .stat-card {
+    padding: 15px 10px;
+  }
+  
+  .stat-card h2 {
+    font-size: 2rem;
+  }
+  
+  .navbar-brand {
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Ajustes para modales */
+  .modal-dialog {
+    margin: 10px;
+    max-width: calc(100% - 20px);
+  }
+  
+  .modal-body {
+    padding: 15px;
+  }
+  
+  /* Botones más grandes para mejor experiencia táctil */
+  .btn-group-sm > .btn, .btn-sm {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.875rem;
+  }
+  
+  .form-select, .form-control {
+    padding: 0.5rem;
+    height: calc(2.5rem + 2px);
+  }
+}
+
+/* Estilos para dispositivos pequeños (móviles) */
+@media (max-width: 576px) {
+  body {
+    padding-top: 50px;
+  }
+  
+  .navbar {
+    padding: 0.5rem 1rem;
+  }
+  
+  .navbar-brand {
+    font-size: 1rem;
+    max-width: 170px;
+  }
+  
+  .navbar-toggler {
+    padding: 0.25rem 0.5rem;
+    font-size: 1rem;
+  }
+  
+  #mapa, #mapa-control {
+    height: 300px;
+  }
+  
+  .card-header {
+    padding: 0.75rem;
+  }
+  
+  .card-body {
+    padding: 1rem;
+  }
+  
+  .table th, .table td {
+    padding: 0.5rem;
+    white-space: nowrap;
+  }
+  
+  .btn-control {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.5rem;
+  }
+  
+  /* Reducir tamaño de los íconos */
+  .pilona-icon {
+    width: 30px;
+    height: 30px;
+    margin-right: 6px;
+    font-size: 14px;
+  }
+  
+  /* Ajustar contador de estadísticas */
+  .stat-card {
+    padding: 10px 5px;
+  }
+  
+  .stat-card h2 {
+    font-size: 1.5rem;
+    margin-bottom: 0.1rem;
+  }
+  
+  .stat-card small {
+    font-size: 0.7rem;
+  }
+  
+  /* Mejorar visibilidad de las alertas */
+  .toast {
+    max-width: 300px;
+    font-size: 0.875rem;
+  }
+  
+  .toast-header {
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .toast-body {
+    padding: 0.75rem;
+  }
+  
+  /* Mejorar formularios */
+  .form-label {
+    margin-bottom: 0.25rem;
+    font-size: 0.875rem;
+  }
+  
+  /* Ajustes para actividad reciente */
+  #actividad-reciente h6 {
+    font-size: 0.875rem;
+  }
+  
+  #lista-actividad .list-group-item {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
+  
+  /* Gestión de zonas */
+  #modal-zonas-usuario .modal-body {
+    padding: 10px;
+  }
+  
+  #modal-zonas-usuario .table th,
+  #modal-zonas-usuario .table td {
+    padding: 0.4rem;
+    font-size: 0.8rem;
+  }
+  
+  #modal-zonas-usuario .form-select {
+    font-size: 0.875rem;
+  }
+  
+  /* Modo cliente específico para móviles */
+  .client-mode .btn-success {
+    font-size: 1rem;
+    padding: 0.5rem 1rem;
+  }
+  
+  .client-mode .pilona-marker {
+    font-size: 16px !important;
+    width: 36px !important;
+    height: 36px !important;
+  }
+  
+  .client-mode .leaflet-popup-content {
+    min-width: 180px;
+  }
+}
+
+/* Clases de utilidad para mejorar la experiencia móvil */
+.text-truncate-sm {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100px;
+}
+
+/* Mejorar legibilidad de estados de pilonas en móviles */
+@media (max-width: 576px) {
+  .badge {
+    font-size: 0.7rem;
+    padding: 0.35em 0.5em;
+  }
+}
+
+/* Para mejorar experiencia táctil en tablas */
+@media (hover: none) {
+  .table-hover tbody tr:hover {
+    background-color: transparent;
+  }
+  
+  /* Se activa solo al tocar */
+  .table-hover tbody tr:active {
+    background-color: rgba(0, 123, 255, 0.1);
+  }
+}
+
+/* Ajustes para mapas de selección en modales */
+@media (max-width: 768px) {
+  #mapa-seleccion {
+    height: 250px !important;
+  }
+}
+
+/* Mejoras para accesibilidad */
+@media (prefers-reduced-motion: reduce) {
+  .pilona-active {
+    animation: none !important;
+  }
+  
+  .stat-card {
+    transition: none !important;
+  }
+  
+  .stat-card:hover {
+    transform: none !important;
+  }
+}
+ .client-mode .btn-success {
+      font-size: 1.1rem;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+    
+    .client-mode .btn-primary {
+      font-size: 1.1rem;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      background-color: #6c5ce7;
+      border-color: #6c5ce7;
+    }
+    
+    .client-mode .btn-primary:hover {
+      background-color: #5b47d1;
+      border-color: #5b47d1;
+      transform: scale(1.05);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    .client-mode .btn-success:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    .client-mode .btn-group {
+      width: 100%;
+      display: flex;
+      gap: 5px;
+    }
+    
+    .client-mode .pilona-marker {
+      font-size: 18px !important;
+      width: 40px !important;
+      height: 40px !important;
+      border-width: 3px !important;
+    }
+    
+    .client-mode .leaflet-popup-content {
+      min-width: 220px;
+      text-align: center;
+    }
+    
+    @media (max-width: 768px) {
+      .client-mode .btn-success,
+      .client-mode .btn-primary {
+        font-size: 1rem;
+        padding: 0.5rem 0.8rem;
+      }
+      
+      .client-mode #mapa {
+        height: 400px !important;
+      }
+      
+      .client-mode .card-dashboard {
+        margin-bottom: 15px;
+      }
+      
+/* Estilos para los controles LOGO */
+.logo-control-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+  margin-top: 10px;
+}
+
+.logo-control-buttons .btn {
+  min-width: 80px;
+}
+
+.led-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.led-indicator i {
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.led-indicator i.text-success {
+  color: #28a745;
+  text-shadow: 0 0 8px #28a745;
+}
+
+.led-indicator i.text-danger {
+  color: #dc3545;
+  text-shadow: 0 0 8px #dc3545;
+}
+
+.led-indicator i.text-secondary {
+  color: #6c757d;
+}
+
+/* Responsivo para los controles LOGO */
+@media (max-width: 768px) {
+  .logo-control-buttons {
+    flex-wrap: wrap;
+    gap: 5px;
+    padding: 8px;
+  }
+  
+  .logo-control-buttons .btn {
+    min-width: 70px;
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .led-indicator i {
+    font-size: 12px;
+  }
+}
+
+/* Animaciones para feedback visual */
+@keyframes flash {
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+.logo-control-buttons .btn:active {
+  animation: flash 0.2s ease;
+}

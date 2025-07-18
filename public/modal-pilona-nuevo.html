@@ -1,0 +1,301 @@
+<!-- Modal para editar/crear pilona - NUEVA ESTRUCTURA DE COILS -->
+<div class="modal fade" id="modal-pilona" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="modal-pilona-titulo">Nueva Pilona</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="form-pilona">
+          <input type="hidden" id="pilona-id">
+          
+          <!-- Información Básica -->
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="pilona-nombre" class="form-label">Nombre</label>
+              <input type="text" class="form-control" id="pilona-nombre" required>
+            </div>
+            <div class="col-md-6">
+              <label for="pilona-direccion-ip" class="form-label">Dirección IP</label>
+              <input type="text" class="form-control" id="pilona-direccion-ip" required>
+            </div>
+          </div>
+          
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label for="pilona-puerto" class="form-label">Puerto</label>
+              <input type="number" class="form-control" id="pilona-puerto" value="502">
+            </div>
+            <div class="col-md-4">
+              <label for="pilona-unit-id" class="form-label">Unit ID</label>
+              <input type="number" class="form-control" id="pilona-unit-id" value="1">
+            </div>
+            <div class="col-md-4">
+              <label for="pilona-tipo-dispositivo" class="form-label">Tipo de Dispositivo</label>
+              <select class="form-select" id="pilona-tipo-dispositivo" required>
+                <option value="MODBUS_GENERICO">Modbus Genérico</option>
+                <option value="LOGO">LOGO! Siemens</option>
+              </select>
+            </div>
+          </div>
+          
+          <!-- Configuración de Coils - NUEVA ESTRUCTURA -->
+          <div id="config-modbus-generico">
+            <h6 class="text-primary mb-3"><i class="fas fa-cogs me-2"></i>Configuración de Coils</h6>
+            
+            <!-- Coil Estado Subida/Bajada -->
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="fas fa-arrows-alt-v text-info me-2"></i>Estado Subida/Bajada (Lectura/Escritura)</h6>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-4">
+                    <label for="pilona-coil-estado-subida-bajada" class="form-label">Dirección Coil</label>
+                    <input type="number" class="form-control" id="pilona-coil-estado-subida-bajada" placeholder="Ej: 0">
+                    <small class="text-muted">1 = Subida, 0 = Bajada</small>
+                  </div>
+                  <div class="col-md-4">
+                    <label for="pilona-tipo-coil-estado" class="form-label">Tipo de Registro</label>
+                    <select class="form-select" id="pilona-tipo-coil-estado">
+                      <option value="COIL">COIL (FC01/FC05)</option>
+                      <option value="HOLDING_REGISTER">HOLDING_REGISTER (FC03/FC06)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label for="pilona-modo-coil-estado" class="form-label">Modo</label>
+                    <select class="form-select" id="pilona-modo-coil-estado">
+                      <option value="RW">Lectura/Escritura</option>
+                      <option value="R">Solo Lectura</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Coil Bajada Puntual -->
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="fas fa-hand-pointer text-primary me-2"></i>Bajada Puntual (Solo Escritura)</h6>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-4">
+                    <label for="pilona-coil-bajada-puntual" class="form-label">Dirección Coil</label>
+                    <input type="number" class="form-control" id="pilona-coil-bajada-puntual" placeholder="Ej: 1">
+                  </div>
+                  <div class="col-md-4">
+                    <label for="pilona-tiempo-puntual" class="form-label">Tiempo Puntual (ms)</label>
+                    <input type="number" class="form-control" id="pilona-tiempo-puntual" value="3000" min="100" max="30000" step="100">
+                    <small class="text-muted">Duración del pulso</small>
+                  </div>
+                  <div class="col-md-4">
+                    <label for="pilona-tipo-coil-bajada-puntual" class="form-label">Tipo de Registro</label>
+                    <select class="form-select" id="pilona-tipo-coil-bajada-puntual">
+                      <option value="COIL">COIL (FC05)</option>
+                      <option value="HOLDING_REGISTER">HOLDING_REGISTER (FC06)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Coil Forzada Abajo -->
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="fas fa-lock text-success me-2"></i>Forzada Abajo (Lectura/Escritura)</h6>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-4">
+                    <label for="pilona-coil-forzada-abajo" class="form-label">Dirección Coil</label>
+                    <input type="number" class="form-control" id="pilona-coil-forzada-abajo" placeholder="Ej: 2">
+                  </div>
+                  <div class="col-md-4">
+                    <label for="pilona-tipo-coil-forzada-abajo" class="form-label">Tipo de Registro</label>
+                    <select class="form-select" id="pilona-tipo-coil-forzada-abajo">
+                      <option value="COIL">COIL (FC01/FC05)</option>
+                      <option value="HOLDING_REGISTER">HOLDING_REGISTER (FC03/FC06)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label for="pilona-modo-coil-forzada-abajo" class="form-label">Modo</label>
+                    <select class="form-select" id="pilona-modo-coil-forzada-abajo">
+                      <option value="RW">Lectura/Escritura</option>
+                      <option value="R">Solo Lectura</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Coil Forzada Arriba -->
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="fas fa-lock text-danger me-2"></i>Forzada Arriba (Lectura/Escritura)</h6>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-4">
+                    <label for="pilona-coil-forzada-arriba" class="form-label">Dirección Coil</label>
+                    <input type="number" class="form-control" id="pilona-coil-forzada-arriba" placeholder="Ej: 3">
+                  </div>
+                  <div class="col-md-4">
+                    <label for="pilona-tipo-coil-forzada-arriba" class="form-label">Tipo de Registro</label>
+                    <select class="form-select" id="pilona-tipo-coil-forzada-arriba">
+                      <option value="COIL">COIL (FC01/FC05)</option>
+                      <option value="HOLDING_REGISTER">HOLDING_REGISTER (FC03/FC06)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label for="pilona-modo-coil-forzada-arriba" class="form-label">Modo</label>
+                    <select class="form-select" id="pilona-modo-coil-forzada-arriba">
+                      <option value="RW">Lectura/Escritura</option>
+                      <option value="R">Solo Lectura</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Coil Electroválvula (Q1) -->
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="fas fa-valve text-warning me-2"></i>Electroválvula (Solo Lectura)</h6>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-4">
+                    <label for="pilona-coil-electrovalvula" class="form-label">Dirección Coil</label>
+                    <input type="number" class="form-control" id="pilona-coil-electrovalvula" placeholder="Ej: 4">
+                    <small class="text-muted">Para detectar fallos de pilona arriba</small>
+                  </div>
+                  <div class="col-md-4">
+                    <label for="pilona-tipo-coil-electrovalvula" class="form-label">Tipo de Registro</label>
+                    <select class="form-select" id="pilona-tipo-coil-electrovalvula">
+                      <option value="COIL">COIL (FC01)</option>
+                      <option value="DISCRETE_INPUT">DISCRETE_INPUT (FC02)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">Modo</label>
+                    <input type="text" class="form-control" value="Solo Lectura" disabled>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Información adicional -->
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i>
+              <strong>Configuración avanzada:</strong> Cada coil puede tener su propio puerto y Unit ID. 
+              Haga clic en "Configuración Avanzada" para especificar valores diferentes para cada coil.
+            </div>
+            
+            <!-- Configuración avanzada (colapsable) -->
+            <div class="accordion" id="config-avanzada">
+              <div class="accordion-item">
+                <h2 class="accordion-header">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAvanzada">
+                    <i class="fas fa-cog me-2"></i>Configuración Avanzada de Puertos y Unit IDs
+                  </button>
+                </h2>
+                <div id="collapseAvanzada" class="accordion-collapse collapse">
+                  <div class="accordion-body">
+                    <!-- Puertos específicos -->
+                    <h6>Puertos específicos por coil (dejar vacío para usar puerto principal)</h6>
+                    <div class="row mb-3">
+                      <div class="col-md-3">
+                        <label class="form-label">Puerto Estado</label>
+                        <input type="number" class="form-control" id="pilona-puerto-coil-estado">
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Puerto Bajada Puntual</label>
+                        <input type="number" class="form-control" id="pilona-puerto-coil-bajada-puntual">
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Puerto Forzada Abajo</label>
+                        <input type="number" class="form-control" id="pilona-puerto-coil-forzada-abajo">
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Puerto Forzada Arriba</label>
+                        <input type="number" class="form-control" id="pilona-puerto-coil-forzada-arriba">
+                      </div>
+                    </div>
+                    
+                    <!-- Unit IDs específicos -->
+                    <h6>Unit IDs específicos por coil (dejar vacío para usar Unit ID principal)</h6>
+                    <div class="row mb-3">
+                      <div class="col-md-3">
+                        <label class="form-label">Unit ID Estado</label>
+                        <input type="number" class="form-control" id="pilona-unitid-coil-estado">
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Unit ID Bajada Puntual</label>
+                        <input type="number" class="form-control" id="pilona-unitid-coil-bajada-puntual">
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Unit ID Forzada Abajo</label>
+                        <input type="number" class="form-control" id="pilona-unitid-coil-forzada-abajo">
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Unit ID Forzada Arriba</label>
+                        <input type="number" class="form-control" id="pilona-unitid-coil-forzada-arriba">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Panel de Pruebas simplificado -->
+          <div class="card mb-3 border-warning">
+            <div class="card-header bg-warning text-dark">
+              <h6 class="mb-0"><i class="fas fa-vial me-2"></i>Prueba de Conexión</h6>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <button type="button" class="btn btn-primary w-100" id="btn-probar-conexion">
+                    <i class="fas fa-plug me-2"></i>Probar Conexión
+                  </button>
+                </div>
+                <div class="col-md-6">
+                  <div class="d-flex align-items-center justify-content-center">
+                    <span class="me-2">Estado:</span>
+                    <div id="led-conexion" class="led led-gray" title="Sin probar">
+                      <i class="fas fa-circle"></i>
+                    </div>
+                    <span id="texto-estado-conexion" class="ms-2 text-muted">Sin probar</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Ubicación -->
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="pilona-latitud" class="form-label">Latitud</label>
+              <input type="number" step="any" class="form-control" id="pilona-latitud" required>
+            </div>
+            <div class="col-md-6">
+              <label for="pilona-longitud" class="form-label">Longitud</label>
+              <input type="number" step="any" class="form-control" id="pilona-longitud" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Mapa (Selecciona la ubicación)</label>
+            <div id="mapa-seleccion" style="height: 300px;"></div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btn-guardar-pilona">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>

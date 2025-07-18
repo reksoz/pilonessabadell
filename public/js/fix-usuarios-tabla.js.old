@@ -1,0 +1,62 @@
+// fix-usuarios-tabla.js - Parche temporal para asegurar que la tabla de usuarios se muestre correctamente
+
+(function() {
+    console.log('Aplicando parche para tabla de usuarios...');
+    
+    // Sobrescribir temporalmente la función problemática
+    const originalAplicarFiltros = window.aplicarFiltros;
+    
+    window.aplicarFiltros = function() {
+        console.log('aplicarFiltros (parcheado): Ejecutando...');
+        
+        // Si la función original existe, intentar ejecutarla
+        if (originalAplicarFiltros && typeof originalAplicarFiltros === 'function') {
+            try {
+                originalAplicarFiltros();
+            } catch (e) {
+                console.error('Error en aplicarFiltros original:', e);
+                // Si falla, mostrar usuarios directamente
+                if (window.usuariosCargados && window.mostrarUsuariosEnTabla) {
+                    window.mostrarUsuariosEnTabla(window.usuariosCargados);
+                }
+            }
+        } else {
+            // Si no existe la función original, mostrar usuarios directamente
+            if (window.usuariosCargados && window.mostrarUsuariosEnTabla) {
+                window.mostrarUsuariosEnTabla(window.usuariosCargados);
+            }
+        }
+    };
+    
+    // Asegurar que cuando se cargue la página de usuarios, se muestren los datos
+    document.addEventListener('DOMContentLoaded', function() {
+        // Observar cambios en la visibilidad de la página de usuarios
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    const paginaUsuarios = document.getElementById('page-usuarios');
+                    if (paginaUsuarios && !paginaUsuarios.classList.contains('hidden')) {
+                        console.log('Página de usuarios visible - verificando tabla...');
+                        setTimeout(() => {
+                            const tbody = document.getElementById('tabla-usuarios');
+                            if (tbody && tbody.innerHTML.includes('No hay usuarios')) {
+                                console.log('Tabla vacía detectada - recargando usuarios...');
+                                if (window.cargarUsuariosMejorado) {
+                                    window.cargarUsuariosMejorado();
+                                }
+                            }
+                        }, 500);
+                    }
+                }
+            });
+        });
+        
+        // Observar el elemento page-usuarios
+        const paginaUsuarios = document.getElementById('page-usuarios');
+        if (paginaUsuarios) {
+            observer.observe(paginaUsuarios, { attributes: true });
+        }
+    });
+    
+    console.log('Parche aplicado correctamente');
+})();

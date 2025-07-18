@@ -1,0 +1,2512 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Control de Pilonas</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚦</text></svg>">
+  
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Leaflet para el mapa -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <!-- Estilos responsive personalizados -->
+  <link rel="stylesheet" href="css/responsive.css">
+  <!-- Estilos del calendario -->
+  <link rel="stylesheet" href="css/calendario.css">
+  <!-- Estilos para estados de fallo -->
+  <link rel="stylesheet" href="css/estados-fallo.css">
+  
+  <style>
+    body {
+      padding-top: 56px;
+      font-family: 'Roboto', sans-serif;
+    }
+    
+    .pilona-subida {
+      color: red;
+      font-weight: bold;
+    }
+    
+    .pilona-bajada {
+      color: green;
+      font-weight: bold;
+    }
+    
+    .pilona-bloqueada-arriba {
+      color: darkred;
+      font-weight: bold;
+    }
+    
+    .pilona-bloqueada-abajo {
+      color: darkgreen;
+      font-weight: bold;
+    }
+    
+    .pilona-error {
+      color: gray;
+      font-weight: bold;
+    }
+    
+    #mapa, #mapa-control {
+      height: 500px;
+      width: 100%;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .hidden {
+      display: none !important;
+    }
+    
+    /* Asegurar que el navbar siempre esté visible en index.html */
+    .navbar {
+      display: flex !important;
+      visibility: visible !important;
+    }
+    
+    /* La clase hidden en elementos individuales debe funcionar */
+    .hidden {
+      display: none !important;
+    }
+    
+    .loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(255, 255, 255, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      transition: opacity 0.3s ease;
+    }
+    
+    .loading.hidden {
+      display: none !important;
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .card-dashboard {
+      margin-bottom: 20px;
+      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+      border-radius: 0.5rem;
+      border: none;
+      overflow: hidden;
+    }
+    
+    .pilona-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: white;
+      margin-right: 10px;
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+      font-size: 16px;
+    }
+    
+    .pilona-marker {
+      border-radius: 50%;
+      width: 32px !important;
+      height: 32px !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      border: 2px solid white;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+      font-size: 14px;
+    }
+    
+    .btn-control {
+      margin-bottom: 5px;
+      width: 100%;
+    }
+    
+    .card-header {
+      font-weight: 500;
+    }
+    
+    .nav-link {
+      padding: 10px 15px;
+      font-weight: 500;
+    }
+    
+    .nav-link.active {
+      font-weight: 700;
+    }
+    
+    .stat-card {
+      border-radius: 10px;
+      transition: transform 0.3s;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-5px);
+    }
+    
+    .table th {
+      font-weight: 500;
+    }
+    
+    .table-hover tbody tr:hover {
+      background-color: rgba(0, 123, 255, 0.05);
+    }
+    
+    .table-control-pilonas tr.selected {
+      background-color: rgba(0, 123, 255, 0.1);
+    }
+    
+    /* Animaciones para las pilonas */
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    
+    .pilona-active {
+      animation: pulse 1s infinite;
+    }
+    
+    /* Estilos para LEDs de prueba */
+    .led {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      font-size: 20px;
+      transition: all 0.3s ease;
+    }
+    
+    .led-small {
+      width: 18px;
+      height: 18px;
+      font-size: 16px;
+    }
+    
+    .led-gray {
+      color: #6c757d;
+    }
+    
+    .led-green {
+      color: #28a745;
+      text-shadow: 0 0 10px #28a745;
+      animation: glow-green 1s ease-in-out infinite alternate;
+    }
+    
+    .led-red {
+      color: #dc3545;
+      text-shadow: 0 0 10px #dc3545;
+      animation: glow-red 1s ease-in-out infinite alternate;
+    }
+    
+    .led-yellow {
+      color: #ffc107;
+      text-shadow: 0 0 10px #ffc107;
+      animation: glow-yellow 1s ease-in-out infinite alternate;
+    }
+    
+    @keyframes glow-green {
+      from { text-shadow: 0 0 10px #28a745; }
+      to { text-shadow: 0 0 20px #28a745, 0 0 30px #28a745; }
+    }
+    
+    @keyframes glow-red {
+      from { text-shadow: 0 0 10px #dc3545; }
+      to { text-shadow: 0 0 20px #dc3545, 0 0 30px #dc3545; }
+    }
+    
+    @keyframes glow-yellow {
+      from { text-shadow: 0 0 10px #ffc107; }
+      to { text-shadow: 0 0 20px #ffc107, 0 0 30px #ffc107; }
+    }
+    
+    /* Color morado/lila para sin comunicación */
+    .bg-purple {
+      background-color: #9C27B0 !important;
+    }
+    
+    .text-purple {
+      color: #9C27B0 !important;
+    }
+  </style>
+</head>
+<body>
+  <!-- Pantalla de carga -->
+  <div id="loading" class="loading">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Cargando...</span>
+    </div>
+  </div>
+  
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">
+        <i class="fas fa-traffic-light me-2"></i>
+        <img src="img/logo-sabadell-small.png" alt="Sabadell" style="height: 25px; object-fit: contain; margin-right: 8px;" onerror="this.style.display='none'">
+        Control de Pilonas
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link active" href="#" data-page="dashboard">Dashboard</a>
+          </li>
+          <!-- Elementos visibles según el rol -->
+          <li class="nav-item operator-only hidden">
+            <a class="nav-link" href="#" data-page="control">Control de Pilonas</a>
+          </li>
+          <li class="nav-item admin-only hidden">
+            <a class="nav-link" href="#" data-page="pilonas">Configuración de Pilonas</a>
+          </li>
+          <li class="nav-item admin-only hidden">
+            <a class="nav-link" href="#" data-page="usuarios">Gestión de Usuarios</a>
+          </li>
+          <li class="nav-item admin-only hidden">
+            <a class="nav-link" href="#" data-page="calendario">Calendario</a>
+          </li>
+          <li class="nav-item admin-only hidden">
+            <a class="nav-link" href="#" data-page="auditoria">Auditoría</a>
+          </li>
+        </ul>
+        <ul class="navbar-nav ms-auto">
+          <!-- Indicador de conexión con el backend -->
+          <li class="nav-item me-3 d-flex align-items-center">
+            <span class="text-white me-2" style="font-size: 0.9rem;">Conexión:</span>
+            <div id="led-conexion-backend" class="led led-gray" title="Sin conexión">
+              <i class="fas fa-circle"></i>
+            </div>
+            <span id="texto-conexion-backend" class="ms-2 text-white" style="font-size: 0.8rem;">Desconectado</span>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+              <i class="fas fa-user-circle me-1"></i>
+              <span id="usuario-nombre-navbar">Usuario</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="#" id="btn-perfil"><i class="fas fa-id-card me-2"></i>Perfil</a></li>
+              <li><a class="dropdown-item" href="#" id="btn-cambiar-password"><i class="fas fa-key me-2"></i>Cambiar Contraseña</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="#" id="btn-logout"><i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Contenedor principal -->
+  <div class="container-fluid my-4">
+
+
+    <!-- Página de Dashboard -->
+    <div id="page-dashboard" class="hidden">
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card card-dashboard">
+            <div class="card-header bg-primary text-white">
+              <h5 class="mb-0"><i class="fas fa-map-marked-alt me-2"></i>Mapa de Pilonas</h5>
+            </div>
+            <div class="card-body">
+              <div id="mapa"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6">
+          <div class="card card-dashboard">
+            <div class="card-header bg-primary text-white">
+              <h5 class="mb-0"><i class="fas fa-list-alt me-2"></i>Lista de Pilonas</h5>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabla-pilonas">
+                    <!-- Se llenará con JavaScript -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card card-dashboard">
+            <div class="card-header bg-primary text-white">
+              <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Resumen</h5>
+            </div>
+            <div class="card-body">
+              <div class="row text-center">
+                <div class="col-6 col-md-3 mb-3">
+                  <div class="bg-danger text-white rounded p-3 stat-card">
+                    <h2 id="count-subidas">0</h2>
+                    <small>Subidas</small>
+                  </div>
+                </div>
+                <div class="col-6 col-md-3 mb-3">
+                  <div class="bg-success text-white rounded p-3 stat-card">
+                    <h2 id="count-bajadas">0</h2>
+                    <small>Bajadas</small>
+                  </div>
+                </div>
+                <div class="col-6 col-md-3 mb-3">
+                  <div class="bg-warning text-white rounded p-3 stat-card">
+                    <h2 id="count-bloqueadas">0</h2>
+                    <small>Bloqueadas</small>
+                  </div>
+                </div>
+                <div class="col-6 col-md-3 mb-3">
+                  <div class="bg-secondary text-white rounded p-3 stat-card">
+                    <h2 id="count-error">0</h2>
+                    <small>Error</small>
+                  </div>
+                </div>
+              </div>
+              <hr>
+              <div id="actividad-reciente">
+                <h6><i class="fas fa-history me-2"></i>Actividad Reciente</h6>
+                <ul class="list-group" id="lista-actividad">
+                  <!-- Se llenará con JavaScript -->
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Página de Control de Pilonas (Operador/Admin) -->
+    <div id="page-control" class="hidden">
+      <div class="card card-dashboard">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="fas fa-sliders-h me-2"></i>Control de Pilonas</h5>
+        </div>
+        <div class="card-body">
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div id="mapa-control" style="height: 400px;"></div>
+            </div>
+            <div class="col-md-6">
+              <div class="card h-100">
+                <div class="card-header bg-light">
+                  <h6 class="mb-0">Panel de Control</h6>
+                </div>
+                <div class="card-body">
+                  <div id="control-info">
+                    <p class="text-center text-muted">Selecciona una pilona en el mapa</p>
+                  </div>
+                  <div id="control-panel" class="hidden">
+                    <h5 id="control-nombre"></h5>
+                    <p>Estado: <span id="control-estado" class="badge"></span></p>
+                    <p>ID: <span id="control-id" class="text-muted"></span></p>
+                    <p>Dirección IP: <span id="control-ip" class="text-muted"></span></p>
+                    
+                    <hr>
+                    
+                    <div class="d-grid gap-2">
+                      <button class="btn btn-success btn-control" id="btn-bajar">
+                        <i class="fas fa-arrow-down me-2"></i>Bajar Pilona
+                      </button>
+                      <button class="btn btn-danger btn-control" id="btn-subir">
+                        <i class="fas fa-arrow-up me-2"></i>Subir Pilona
+                      </button>
+                      <button class="btn btn-warning btn-control" id="btn-bloquear-arriba">
+                        <i class="fas fa-lock me-2"></i>Bloquear Arriba
+                      </button>
+                      <button class="btn btn-warning btn-control" id="btn-bloquear-abajo">
+                        <i class="fas fa-lock me-2"></i>Bloquear Abajo
+                      </button>
+                      <button class="btn btn-secondary btn-control" id="btn-desbloquear">
+                        <i class="fas fa-unlock me-2"></i>Desbloquear
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-12">
+              <div class="table-responsive">
+                <table class="table table-hover" id="tabla-control-pilonas-container">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Ubicación</th>
+                      <th>Estado</th>
+                      <th>Dirección IP</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabla-control-pilonas">
+                    <!-- Se llenará con JavaScript -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Página de Configuración de Pilonas (Admin) -->
+    <div id="page-pilonas" class="hidden">
+      <div class="card card-dashboard">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>Configuración de Pilonas</h5>
+          <button class="btn btn-light btn-sm" id="btn-nueva-pilona">
+            <i class="fas fa-plus me-1"></i>Nueva Pilona
+          </button>
+        </div>
+        <div class="card-body">
+          <!-- Búsqueda de zonas -->
+          <div class="row mb-3">
+            <div class="col-md-12">
+              <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" class="form-control" id="busqueda-zonas" placeholder="Buscar por nombre o descripción de zona...">
+              </div>
+            </div>
+          </div>
+          
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                  <th>Dirección IP</th>
+                  <th>Estado</th>
+                  <th>Ubicación</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-config-pilonas">
+                <!-- Se llenará con JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Página de Gestión de Usuarios (Admin) -->
+    <div id="page-usuarios" class="hidden">
+      <div class="card card-dashboard">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="fas fa-users me-2"></i>Gestión de Usuarios</h5>
+          <div>
+            <button class="btn btn-light btn-sm me-2" id="btn-nuevo-usuario">
+              <i class="fas fa-user-plus me-1"></i>Nuevo Usuario
+            </button>
+            <button class="btn btn-outline-light btn-sm" id="btn-gestionar-zonas">
+              <i class="fas fa-map-signs me-1"></i>Gestión de Zonas
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Búsqueda -->
+          <div class="row mb-3">
+            <div class="col-md-12">
+              <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" class="form-control" id="busqueda-usuarios" placeholder="Buscar por nombre, email, DNI, matrícula o teléfono...">
+              </div>
+            </div>
+          </div>
+          
+          <!-- Filtros -->
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label for="filtro-rol" class="form-label">Filtrar por Rol:</label>
+              <select class="form-select" id="filtro-rol">
+                <option value="">Todos los roles</option>
+                <option value="administrador">Administrador</option>
+                <option value="operador">Operador</option>
+                <option value="cliente">Cliente</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label for="filtro-estado" class="form-label">Filtrar por Estado:</label>
+              <select class="form-select" id="filtro-estado">
+                <option value="">Todos los estados</option>
+                <option value="1">Activos</option>
+                <option value="0">Inactivos</option>
+              </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+              <button class="btn btn-outline-secondary" id="btn-limpiar-filtros">
+                <i class="fas fa-times me-1"></i>Limpiar Filtros
+              </button>
+            </div>
+          </div>
+          
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                  <th>Email</th>
+                  <th>Rol</th>
+                  <th>Estado</th>
+                  <th>Matrícula</th>
+                  <th>DNI</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-usuarios">
+                <!-- Se llenará con JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Página de Gestión de Zonas (Admin) -->
+    <div id="page-zonas" class="hidden">
+      <div class="card card-dashboard">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="fas fa-map-signs me-2"></i>Gestión de Zonas</h5>
+          <button class="btn btn-light btn-sm" id="btn-nueva-zona">
+            <i class="fas fa-plus me-1"></i>Nueva Zona
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                  <th>Descripción</th>
+                  <th>Pilonas Asignadas</th>
+                  <th>Usuarios con Acceso</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-zonas">
+                <!-- Se llenará con JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Página de Calendario (Admin) -->
+    <div id="page-calendario" class="hidden">
+      <div class="card card-dashboard">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Calendario y Programaciones</h5>
+        </div>
+        <div class="card-body">
+          <!-- Navegación del calendario -->
+          <div class="calendario-navegacion">
+            <button class="btn btn-outline-primary" id="btn-mes-anterior">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <h4 id="calendario-mes-año">Enero 2025</h4>
+            <button class="btn btn-outline-primary" id="btn-mes-siguiente">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+          
+          <!-- Tabs -->
+          <ul class="nav nav-tabs calendario-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-calendario" type="button">
+                <i class="fas fa-calendar me-2"></i>Vista Calendario
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-festivos" type="button">
+                <i class="fas fa-calendar-day me-2"></i>Días Festivos
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-programaciones" type="button">
+                <i class="fas fa-clock me-2"></i>Programaciones
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-logs" type="button">
+                <i class="fas fa-history me-2"></i>Logs de Ejecución
+              </button>
+            </li>
+          </ul>
+          
+          <!-- Tab content -->
+          <div class="tab-content mt-3">
+            <!-- Tab Calendario -->
+            <div class="tab-pane fade show active" id="tab-calendario" role="tabpanel">
+              <table class="tabla-calendario">
+                <thead>
+                  <tr>
+                    <th>Dom</th>
+                    <th>Lun</th>
+                    <th>Mar</th>
+                    <th>Mié</th>
+                    <th>Jue</th>
+                    <th>Vie</th>
+                    <th>Sáb</th>
+                  </tr>
+                </thead>
+                <tbody id="calendario-dias">
+                  <!-- Se llenará con JavaScript -->
+                </tbody>
+              </table>
+            </div>
+            
+            <!-- Tab Festivos -->
+            <div class="tab-pane fade" id="tab-festivos" role="tabpanel">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6>Gestión de Días Festivos</h6>
+                <button class="btn btn-primary btn-sm" id="btn-nuevo-festivo">
+                  <i class="fas fa-plus me-1"></i>Nuevo Festivo
+                </button>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-hover tabla-festivos">
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Nombre</th>
+                      <th>Tipo</th>
+                      <th>Descripción</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabla-festivos">
+                    <!-- Se llenará con JavaScript -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            
+            <!-- Tab Programaciones -->
+            <div class="tab-pane fade" id="tab-programaciones" role="tabpanel">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6>Programaciones Automáticas</h6>
+                <button class="btn btn-primary btn-sm" id="btn-nueva-programacion">
+                  <i class="fas fa-plus me-1"></i>Nueva Programación
+                </button>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-hover tabla-programaciones">
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Tipo</th>
+                      <th>Horario</th>
+                      <th>Acción</th>
+                      <th>Detalles</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabla-programaciones">
+                    <!-- Se llenará con JavaScript -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            
+            <!-- Tab Logs -->
+            <div class="tab-pane fade" id="tab-logs" role="tabpanel">
+              <div class="filtros-programacion mb-3">
+                <div class="row">
+                  <div class="col-md-6">
+                    <label for="filtro-programacion-log" class="form-label">Filtrar por programación:</label>
+                    <select class="form-select" id="filtro-programacion-log">
+                      <option value="">Todas las programaciones</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="filtro-limite-logs" class="form-label">Límite de registros:</label>
+                    <select class="form-select" id="filtro-limite-logs">
+                      <option value="50">Últimos 50</option>
+                      <option value="100" selected>Últimos 100</option>
+                      <option value="200">Últimos 200</option>
+                      <option value="500">Últimos 500</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="logs-container">
+                <div class="table-responsive">
+                  <table class="table table-hover tabla-logs">
+                    <thead>
+                      <tr>
+                        <th>Fecha/Hora</th>
+                        <th>Programación</th>
+                        <th>Estado</th>
+                        <th>Pilonas Afectadas</th>
+                        <th>Mensaje</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tabla-logs-programacion">
+                      <!-- Se llenará con JavaScript -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Página de Auditoría (Admin) -->
+    <div id="page-auditoria" class="hidden">
+      <div class="card card-dashboard">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Registro de Auditoría</h5>
+        </div>
+        <div class="card-body">
+          <div class="row mb-4">
+            <div class="col-md-12">
+              <div class="card">
+                <div class="card-header bg-light">
+                  <h6 class="mb-0">Filtros</h6>
+                </div>
+                <div class="card-body">
+                  <form id="form-filtros-auditoria" class="row g-3">
+                    <div class="col-md-4">
+                      <label for="filtro-fecha-inicio" class="form-label">Fecha Inicio</label>
+                      <input type="date" class="form-control" id="filtro-fecha-inicio">
+                    </div>
+                    <div class="col-md-4">
+                      <label for="filtro-fecha-fin" class="form-label">Fecha Fin</label>
+                      <input type="date" class="form-control" id="filtro-fecha-fin">
+                    </div>
+                    <div class="col-md-4">
+                      <label for="filtro-usuario" class="form-label">Usuario</label>
+                      <select class="form-select" id="filtro-usuario">
+                        <option value="">Todos</option>
+                        <!-- Se llenará con JavaScript -->
+                      </select>
+                    </div>
+                    <div class="col-12 text-end">
+                      <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i>Filtrar
+                      </button>
+                      <button type="button" class="btn btn-secondary" id="btn-reset-filtros">
+                        <i class="fas fa-undo me-1"></i>Restablecer
+                      </button>
+                      <button type="button" class="btn btn-success" id="btn-exportar-csv">
+                        <i class="fas fa-file-csv me-1"></i>Exportar CSV
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Fecha</th>
+                  <th>Usuario</th>
+                  <th>Acción</th>
+                  <th>Pilona</th>
+                  <th>IP</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-auditoria">
+                <!-- Se llenará con JavaScript -->
+              </tbody>
+            </table>
+            <!-- Paginación -->
+            <nav aria-label="Paginación de auditoría">
+              <ul class="pagination justify-content-center" id="paginacion-auditoria">
+                <!-- Se llenará con JavaScript -->
+              </ul>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para cambio de contraseña -->
+  <div class="modal fade" id="modal-cambiar-password" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title">Cambiar Contraseña</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="form-cambiar-password">
+            <div class="mb-3">
+              <label for="password-actual" class="form-label">Contraseña Actual</label>
+              <input type="password" class="form-control" id="password-actual" required>
+            </div>
+            <div class="mb-3">
+              <label for="password-nueva" class="form-label">Nueva Contraseña</label>
+              <input type="password" class="form-control" id="password-nueva" required>
+            </div>
+            <div class="mb-3">
+              <label for="password-confirmar" class="form-label">Confirmar Contraseña</label>
+              <input type="password" class="form-control" id="password-confirmar" required>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="btn-guardar-password">Guardar Cambios</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para editar/crear pilona -->
+  <div class="modal fade" id="modal-pilona" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="modal-pilona-titulo">Nueva Pilona</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="form-pilona">
+            <input type="hidden" id="pilona-id">
+            
+            <!-- Tipo de dispositivo -->
+            <div class="row mb-3">
+              <div class="col-12">
+                <label for="pilona-tipo-dispositivo" class="form-label">Tipo de Dispositivo</label>
+                <select class="form-select" id="pilona-tipo-dispositivo" required>
+                  <option value="MODBUS_GENERICO">Modbus Genérico</option>
+                  <option value="LOGO">LOGO! Siemens</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="pilona-nombre" class="form-label">Nombre</label>
+                <input type="text" class="form-control" id="pilona-nombre" required>
+              </div>
+              <div class="col-md-6">
+                <label for="pilona-direccion-ip" class="form-label">Dirección IP</label>
+                <input type="text" class="form-control" id="pilona-direccion-ip" required>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="pilona-puerto" class="form-label">Puerto</label>
+                <input type="number" class="form-control" id="pilona-puerto" value="502">
+              </div>
+              <div class="col-md-6">
+                <label for="pilona-unit-id" class="form-label">Unit ID</label>
+                <input type="number" class="form-control" id="pilona-unit-id" value="1">
+              </div>
+            </div>
+            
+            <!-- Configuración para Modbus Genérico -->
+            <div id="config-modbus-generico">
+              <h6 class="text-primary mb-3"><i class="fas fa-cogs me-2"></i>Configuración de Coils</h6>
+              
+              <!-- Coil Estado Subida/Bajada -->
+              <div class="card mb-3">
+                <div class="card-header bg-light">
+                  <h6 class="mb-0"><i class="fas fa-arrows-alt-v text-info me-2"></i>Estado Subida/Bajada (Solo Lectura)</h6>
+                </div>
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <label for="pilona-coil-estado-subida-bajada" class="form-label">Dirección Coil</label>
+                      <input type="number" class="form-control" id="pilona-coil-estado-subida-bajada" placeholder="Ej: 0">
+                      <small class="text-muted">1 = Subida, 0 = Bajada</small>
+                    </div>
+                    <div class="col-md-6">
+                      <label for="pilona-tipo-coil-estado" class="form-label">Tipo de Registro</label>
+                      <select class="form-select" id="pilona-tipo-coil-estado">
+                        <option value="COIL">COIL (FC01)</option>
+                        <option value="INPUT">INPUT (FC02)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Coil Bajada Puntual -->
+              <div class="card mb-3">
+                <div class="card-header bg-light">
+                  <h6 class="mb-0"><i class="fas fa-hand-pointer text-primary me-2"></i>Bajada Puntual (Lectura/Escritura)</h6>
+                </div>
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col-md-4">
+                      <label for="pilona-coil-bajada-puntual" class="form-label">Dirección Coil</label>
+                      <input type="number" class="form-control" id="pilona-coil-bajada-puntual" placeholder="Ej: 1">
+                    </div>
+                    <div class="col-md-4">
+                      <label for="pilona-tiempo-puntual" class="form-label">Tiempo Puntual (ms)</label>
+                      <input type="number" class="form-control" id="pilona-tiempo-puntual" value="3000" min="100" max="30000" step="100">
+                      <small class="text-muted">Duración del pulso</small>
+                    </div>
+                    <div class="col-md-4">
+                      <label for="pilona-tipo-coil-bajada-puntual" class="form-label">Tipo de Registro</label>
+                      <select class="form-select" id="pilona-tipo-coil-bajada-puntual">
+                        <option value="COIL">COIL (FC01/FC05)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Coil Forzada Abajo -->
+              <div class="card mb-3">
+                <div class="card-header bg-light">
+                  <h6 class="mb-0"><i class="fas fa-lock text-success me-2"></i>Forzada Abajo (Lectura/Escritura)</h6>
+                </div>
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <label for="pilona-coil-forzada-abajo" class="form-label">Dirección Coil</label>
+                      <input type="number" class="form-control" id="pilona-coil-forzada-abajo" placeholder="Ej: 2">
+                    </div>
+                    <div class="col-md-6">
+                      <label for="pilona-tipo-coil-forzada-abajo" class="form-label">Tipo de Registro</label>
+                      <select class="form-select" id="pilona-tipo-coil-forzada-abajo">
+                        <option value="COIL">COIL (FC01/FC05)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Coil Forzada Arriba -->
+              <div class="card mb-3">
+                <div class="card-header bg-light">
+                  <h6 class="mb-0"><i class="fas fa-lock text-danger me-2"></i>Forzada Arriba (Lectura/Escritura)</h6>
+                </div>
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <label for="pilona-coil-forzada-arriba" class="form-label">Dirección Coil</label>
+                      <input type="number" class="form-control" id="pilona-coil-forzada-arriba" placeholder="Ej: 3">
+                    </div>
+                    <div class="col-md-6">
+                      <label for="pilona-tipo-coil-forzada-arriba" class="form-label">Tipo de Registro</label>
+                      <select class="form-select" id="pilona-tipo-coil-forzada-arriba">
+                        <option value="COIL">COIL (FC01/FC05)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Coil Electroválvula -->
+              <div class="card mb-3">
+                <div class="card-header bg-light">
+                  <h6 class="mb-0"><i class="fas fa-tachometer-alt text-warning me-2"></i>Electroválvula (Solo Lectura)</h6>
+                </div>
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <label for="pilona-coil-electrovalvula" class="form-label">Dirección Coil</label>
+                      <input type="number" class="form-control" id="pilona-coil-electrovalvula" placeholder="Ej: 4">
+                      <small class="text-muted">Para detección de fallos de pilona</small>
+                    </div>
+                    <div class="col-md-6">
+                      <label for="pilona-tipo-coil-electrovalvula" class="form-label">Tipo de Registro</label>
+                      <select class="form-select" id="pilona-tipo-coil-electrovalvula">
+                        <option value="COIL">COIL (FC01)</option>
+                        <option value="INPUT">INPUT (FC02)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Panel de Pruebas en Tiempo Real -->
+            <div class="card mb-3 border-warning">
+              <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0"><i class="fas fa-vial me-2"></i>Prueba de Conexión en Tiempo Real</h6>
+              </div>
+              <div class="card-body">
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <button type="button" class="btn btn-primary w-100" id="btn-probar-conexion">
+                      <i class="fas fa-plug me-2"></i>Probar Conexión
+                    </button>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="d-flex align-items-center justify-content-center">
+                      <span class="me-2">Estado:</span>
+                      <div id="led-conexion" class="led led-gray" title="Sin probar">
+                        <i class="fas fa-circle"></i>
+                      </div>
+                      <span id="texto-estado-conexion" class="ms-2 text-muted">Sin probar</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div id="panel-pruebas-coils" style="display: none;">
+                  <hr>
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="text-secondary mb-0">Prueba de Coils/Elementos</h6>
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" id="modo-pruebas-activo">
+                      <label class="form-check-label" for="modo-pruebas-activo">
+                        Modo Pruebas <span class="badge bg-warning text-dark ms-1" id="estado-modo-pruebas">INACTIVO</span>
+                      </label>
+                    </div>
+                  </div>
+                  <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                      <thead>
+                        <tr>
+                          <th>Función</th>
+                          <th>Dirección</th>
+                          <th>Estado Actual</th>
+                          <th>Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td><i class="fas fa-arrow-up text-danger me-2"></i>Subir</td>
+                          <td id="test-addr-subir">-</td>
+                          <td>
+                            <div class="d-flex align-items-center">
+                              <div class="led led-small" id="test-led-subir">
+                                <i class="fas fa-circle"></i>
+                              </div>
+                              <span class="ms-2 small" id="test-value-subir">-</span>
+                            </div>
+                          </td>
+                          <td>
+                            <button type="button" class="btn btn-sm btn-outline-danger test-btn-write" data-coil="subir" disabled>
+                              <i class="fas fa-pen-square"></i> Escribir 1
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td><i class="fas fa-arrow-down text-success me-2"></i>Bajar</td>
+                          <td id="test-addr-bajar">-</td>
+                          <td>
+                            <div class="d-flex align-items-center">
+                              <div class="led led-small" id="test-led-bajar">
+                                <i class="fas fa-circle"></i>
+                              </div>
+                              <span class="ms-2 small" id="test-value-bajar">-</span>
+                            </div>
+                          </td>
+                          <td>
+                            <button type="button" class="btn btn-sm btn-outline-success test-btn-write" data-coil="bajar" disabled>
+                              <i class="fas fa-pen-square"></i> Escribir 1
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td><i class="fas fa-info-circle text-info me-2"></i>Estado</td>
+                          <td id="test-addr-estado">-</td>
+                          <td>
+                            <div class="d-flex align-items-center">
+                              <div class="led led-small" id="test-led-estado">
+                                <i class="fas fa-circle"></i>
+                              </div>
+                              <span class="ms-2 small" id="test-value-estado">-</span>
+                            </div>
+                          </td>
+                          <td>
+                            <button type="button" class="btn btn-sm btn-outline-info test-btn-toggle" data-coil="estado" disabled>
+                              <i class="fas fa-exchange-alt"></i> Toggle
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td><i class="fas fa-lock text-warning me-2"></i>Bloqueo</td>
+                          <td id="test-addr-bloqueo">-</td>
+                          <td>
+                            <div class="d-flex align-items-center">
+                              <div class="led led-small" id="test-led-bloqueo">
+                                <i class="fas fa-circle"></i>
+                              </div>
+                              <span class="ms-2 small" id="test-value-bloqueo">-</span>
+                            </div>
+                          </td>
+                          <td>
+                            <button type="button" class="btn btn-sm btn-outline-warning test-btn-toggle" data-coil="bloqueo" disabled>
+                              <i class="fas fa-exchange-alt"></i> Toggle
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td><i class="fas fa-hand-pointer text-primary me-2"></i>Puntual</td>
+                          <td id="test-addr-puntual">-</td>
+                          <td>
+                            <div class="d-flex align-items-center">
+                              <div class="led led-small" id="test-led-puntual">
+                                <i class="fas fa-circle"></i>
+                              </div>
+                              <span class="ms-2 small" id="test-value-puntual">-</span>
+                            </div>
+                          </td>
+                          <td>
+                            <button type="button" class="btn btn-sm btn-outline-primary test-btn-write" data-coil="puntual" disabled>
+                              <i class="fas fa-pen-square"></i> Escribir 1
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div class="row mt-3">
+                    <div class="col-md-6">
+                      <div class="d-grid">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="test-btn-read-all" disabled>
+                          <i class="fas fa-sync-alt me-1"></i> Leer Todos los Estados
+                        </button>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="test-auto-refresh" disabled>
+                        <label class="form-check-label" for="test-auto-refresh">
+                          Actualización automática (1s)
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="alert alert-warning mt-3 mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Advertencia:</strong> Los botones de escritura enviarán comandos reales al dispositivo. Mientras esté activo el modo pruebas, la monitorización automática de esta pilona se desactivará.
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Configuración para LOGO! -->
+            <div id="config-logo" style="display: none;">
+              <h6 class="text-primary mb-3"><i class="fas fa-microchip me-2"></i>Configuración LOGO! Siemens</h6>
+              
+              <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Asigne las funciones de la pilona a los elementos del LOGO! (I, Q, M)
+              </div>
+              
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">Función SUBIR</label>
+                  <div class="input-group">
+                    <select class="form-select logo-function" data-function="subir">
+                      <option value="">Seleccionar...</option>
+                      <optgroup label="Entradas (I) - Solo lectura">
+                        <option value="I1">I1 - Entrada digital 1</option>
+                        <option value="I2">I2 - Entrada digital 2</option>
+                        <option value="I3">I3 - Entrada digital 3</option>
+                        <option value="I4">I4 - Entrada digital 4</option>
+                        <option value="I5">I5 - Entrada digital 5</option>
+                        <option value="I6">I6 - Entrada digital 6</option>
+                        <option value="I7">I7 - Entrada digital 7</option>
+                        <option value="I8">I8 - Entrada digital 8</option>
+                        <option value="I9">I9 - Entrada digital 9</option>
+                        <option value="I10">I10 - Entrada digital 10</option>
+                        <option value="I11">I11 - Entrada digital 11</option>
+                        <option value="I12">I12 - Entrada digital 12</option>
+                      </optgroup>
+                      <optgroup label="Salidas (Q) - Lectura/Escritura">
+                        <option value="Q1">Q1 - Salida digital 1</option>
+                        <option value="Q2">Q2 - Salida digital 2</option>
+                        <option value="Q3">Q3 - Salida digital 3</option>
+                        <option value="Q4">Q4 - Salida digital 4</option>
+                        <option value="Q5">Q5 - Salida digital 5</option>
+                        <option value="Q6">Q6 - Salida digital 6</option>
+                        <option value="Q7">Q7 - Salida digital 7</option>
+                        <option value="Q8">Q8 - Salida digital 8</option>
+                        <option value="Q9">Q9 - Salida digital 9</option>
+                        <option value="Q10">Q10 - Salida digital 10</option>
+                        <option value="Q11">Q11 - Salida digital 11</option>
+                        <option value="Q12">Q12 - Salida digital 12</option>
+                        <option value="Q13">Q13 - Salida digital 13</option>
+                        <option value="Q14">Q14 - Salida digital 14</option>
+                        <option value="Q15">Q15 - Salida digital 15</option>
+                        <option value="Q16">Q16 - Salida digital 16</option>
+                      </optgroup>
+                      <optgroup label="Marcas (M) - Lectura/Escritura">
+                        <option value="M1">M1 - Marca digital 1</option>
+                        <option value="M2">M2 - Marca digital 2</option>
+                        <option value="M3">M3 - Marca digital 3</option>
+                        <option value="M4">M4 - Marca digital 4</option>
+                        <option value="M5">M5 - Marca digital 5</option>
+                        <option value="M6">M6 - Marca digital 6</option>
+                        <option value="M7">M7 - Marca digital 7</option>
+                        <option value="M8">M8 - Marca digital 8</option>
+                        <option value="M9">M9 - Marca digital 9</option>
+                        <option value="M10">M10 - Marca digital 10</option>
+                        <option value="M11">M11 - Marca digital 11</option>
+                        <option value="M12">M12 - Marca digital 12</option>
+                        <option value="M13">M13 - Marca digital 13</option>
+                        <option value="M14">M14 - Marca digital 14</option>
+                        <option value="M15">M15 - Marca digital 15</option>
+                        <option value="M16">M16 - Marca digital 16</option>
+                        <option value="M17">M17 - Marca digital 17</option>
+                        <option value="M18">M18 - Marca digital 18</option>
+                        <option value="M19">M19 - Marca digital 19</option>
+                        <option value="M20">M20 - Marca digital 20</option>
+                        <option value="M21">M21 - Marca digital 21</option>
+                        <option value="M22">M22 - Marca digital 22</option>
+                        <option value="M23">M23 - Marca digital 23</option>
+                        <option value="M24">M24 - Marca digital 24</option>
+                        <option value="M25">M25 - Marca digital 25</option>
+                        <option value="M26">M26 - Marca digital 26</option>
+                        <option value="M27">M27 - Marca digital 27</option>
+                        <option value="M28">M28 - Marca digital 28</option>
+                        <option value="M29">M29 - Marca digital 29</option>
+                        <option value="M30">M30 - Marca digital 30</option>
+                        <option value="M31">M31 - Marca digital 31</option>
+                        <option value="M32">M32 - Marca digital 32</option>
+                      </optgroup>
+                      <optgroup label="Registros V (Bits) - Lectura/Escritura">
+                        <option value="V0.0">V0.0 - Registro V0 Bit 0</option>
+                        <option value="V0.1">V0.1 - Registro V0 Bit 1</option>
+                        <option value="V0.2">V0.2 - Registro V0 Bit 2</option>
+                        <option value="V0.3">V0.3 - Registro V0 Bit 3</option>
+                        <option value="V0.4">V0.4 - Registro V0 Bit 4</option>
+                        <option value="V0.5">V0.5 - Registro V0 Bit 5</option>
+                        <option value="V0.6">V0.6 - Registro V0 Bit 6</option>
+                        <option value="V0.7">V0.7 - Registro V0 Bit 7</option>
+                        <option value="V1.0">V1.0 - Registro V1 Bit 0</option>
+                        <option value="V1.1">V1.1 - Registro V1 Bit 1</option>
+                        <option value="V1.2">V1.2 - Registro V1 Bit 2</option>
+                        <option value="V1.3">V1.3 - Registro V1 Bit 3</option>
+                        <option value="V1.4">V1.4 - Registro V1 Bit 4</option>
+                        <option value="V1.5">V1.5 - Registro V1 Bit 5</option>
+                        <option value="V1.6">V1.6 - Registro V1 Bit 6</option>
+                        <option value="V1.7">V1.7 - Registro V1 Bit 7</option>
+                      </optgroup>
+                    </select>
+                    <select class="form-select logo-mode" data-function="subir" style="max-width: 120px;">
+                      <option value="write">Escritura</option>
+                      <option value="read">Lectura</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Función BAJAR</label>
+                  <div class="input-group">
+                    <select class="form-select logo-function" data-function="bajar">
+                      <option value="">Seleccionar...</option>
+                      <optgroup label="Entradas (I) - Solo lectura">
+                        <option value="I1">I1 - Entrada digital 1</option>
+                        <option value="I2">I2 - Entrada digital 2</option>
+                        <option value="I3">I3 - Entrada digital 3</option>
+                        <option value="I4">I4 - Entrada digital 4</option>
+                        <option value="I5">I5 - Entrada digital 5</option>
+                        <option value="I6">I6 - Entrada digital 6</option>
+                        <option value="I7">I7 - Entrada digital 7</option>
+                        <option value="I8">I8 - Entrada digital 8</option>
+                        <option value="I9">I9 - Entrada digital 9</option>
+                        <option value="I10">I10 - Entrada digital 10</option>
+                        <option value="I11">I11 - Entrada digital 11</option>
+                        <option value="I12">I12 - Entrada digital 12</option>
+                      </optgroup>
+                      <optgroup label="Salidas (Q) - Lectura/Escritura">
+                        <option value="Q1">Q1 - Salida digital 1</option>
+                        <option value="Q2">Q2 - Salida digital 2</option>
+                        <option value="Q3">Q3 - Salida digital 3</option>
+                        <option value="Q4">Q4 - Salida digital 4</option>
+                        <option value="Q5">Q5 - Salida digital 5</option>
+                        <option value="Q6">Q6 - Salida digital 6</option>
+                        <option value="Q7">Q7 - Salida digital 7</option>
+                        <option value="Q8">Q8 - Salida digital 8</option>
+                        <option value="Q9">Q9 - Salida digital 9</option>
+                        <option value="Q10">Q10 - Salida digital 10</option>
+                        <option value="Q11">Q11 - Salida digital 11</option>
+                        <option value="Q12">Q12 - Salida digital 12</option>
+                        <option value="Q13">Q13 - Salida digital 13</option>
+                        <option value="Q14">Q14 - Salida digital 14</option>
+                        <option value="Q15">Q15 - Salida digital 15</option>
+                        <option value="Q16">Q16 - Salida digital 16</option>
+                      </optgroup>
+                      <optgroup label="Marcas (M) - Lectura/Escritura">
+                        <option value="M1">M1 - Marca digital 1</option>
+                        <option value="M2">M2 - Marca digital 2</option>
+                        <option value="M3">M3 - Marca digital 3</option>
+                        <option value="M4">M4 - Marca digital 4</option>
+                        <option value="M5">M5 - Marca digital 5</option>
+                        <option value="M6">M6 - Marca digital 6</option>
+                        <option value="M7">M7 - Marca digital 7</option>
+                        <option value="M8">M8 - Marca digital 8</option>
+                        <option value="M9">M9 - Marca digital 9</option>
+                        <option value="M10">M10 - Marca digital 10</option>
+                        <option value="M11">M11 - Marca digital 11</option>
+                        <option value="M12">M12 - Marca digital 12</option>
+                        <option value="M13">M13 - Marca digital 13</option>
+                        <option value="M14">M14 - Marca digital 14</option>
+                        <option value="M15">M15 - Marca digital 15</option>
+                        <option value="M16">M16 - Marca digital 16</option>
+                        <option value="M17">M17 - Marca digital 17</option>
+                        <option value="M18">M18 - Marca digital 18</option>
+                        <option value="M19">M19 - Marca digital 19</option>
+                        <option value="M20">M20 - Marca digital 20</option>
+                        <option value="M21">M21 - Marca digital 21</option>
+                        <option value="M22">M22 - Marca digital 22</option>
+                        <option value="M23">M23 - Marca digital 23</option>
+                        <option value="M24">M24 - Marca digital 24</option>
+                        <option value="M25">M25 - Marca digital 25</option>
+                        <option value="M26">M26 - Marca digital 26</option>
+                        <option value="M27">M27 - Marca digital 27</option>
+                        <option value="M28">M28 - Marca digital 28</option>
+                        <option value="M29">M29 - Marca digital 29</option>
+                        <option value="M30">M30 - Marca digital 30</option>
+                        <option value="M31">M31 - Marca digital 31</option>
+                        <option value="M32">M32 - Marca digital 32</option>
+                      </optgroup>
+                      <optgroup label="Registros V (Bits) - Lectura/Escritura">
+                        <option value="V0.0">V0.0 - Registro V0 Bit 0</option>
+                        <option value="V0.1">V0.1 - Registro V0 Bit 1</option>
+                        <option value="V0.2">V0.2 - Registro V0 Bit 2</option>
+                        <option value="V0.3">V0.3 - Registro V0 Bit 3</option>
+                        <option value="V0.4">V0.4 - Registro V0 Bit 4</option>
+                        <option value="V0.5">V0.5 - Registro V0 Bit 5</option>
+                        <option value="V0.6">V0.6 - Registro V0 Bit 6</option>
+                        <option value="V0.7">V0.7 - Registro V0 Bit 7</option>
+                        <option value="V1.0">V1.0 - Registro V1 Bit 0</option>
+                        <option value="V1.1">V1.1 - Registro V1 Bit 1</option>
+                        <option value="V1.2">V1.2 - Registro V1 Bit 2</option>
+                        <option value="V1.3">V1.3 - Registro V1 Bit 3</option>
+                        <option value="V1.4">V1.4 - Registro V1 Bit 4</option>
+                        <option value="V1.5">V1.5 - Registro V1 Bit 5</option>
+                        <option value="V1.6">V1.6 - Registro V1 Bit 6</option>
+                        <option value="V1.7">V1.7 - Registro V1 Bit 7</option>
+                      </optgroup>
+                    </select>
+                    <select class="form-select logo-mode" data-function="bajar" style="max-width: 120px;">
+                      <option value="write">Escritura</option>
+                      <option value="read">Lectura</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">Función ESTADO (Sensor posición)</label>
+                  <div class="input-group">
+                    <select class="form-select logo-function" data-function="estado">
+                      <option value="">Seleccionar...</option>
+                      <optgroup label="Entradas (I) - Solo lectura">
+                        <option value="I1">I1 - Entrada digital 1</option>
+                        <option value="I2">I2 - Entrada digital 2</option>
+                        <option value="I3">I3 - Entrada digital 3</option>
+                        <option value="I4">I4 - Entrada digital 4</option>
+                        <option value="I5">I5 - Entrada digital 5</option>
+                        <option value="I6">I6 - Entrada digital 6</option>
+                        <option value="I7">I7 - Entrada digital 7</option>
+                        <option value="I8">I8 - Entrada digital 8</option>
+                        <option value="I9">I9 - Entrada digital 9</option>
+                        <option value="I10">I10 - Entrada digital 10</option>
+                        <option value="I11">I11 - Entrada digital 11</option>
+                        <option value="I12">I12 - Entrada digital 12</option>
+                        <option value="I13">I13 - Entrada digital 13</option>
+                        <option value="I14">I14 - Entrada digital 14</option>
+                        <option value="I15">I15 - Entrada digital 15</option>
+                        <option value="I16">I16 - Entrada digital 16</option>
+                        <option value="I17">I17 - Entrada digital 17</option>
+                        <option value="I18">I18 - Entrada digital 18</option>
+                        <option value="I19">I19 - Entrada digital 19</option>
+                        <option value="I20">I20 - Entrada digital 20</option>
+                        <option value="I21">I21 - Entrada digital 21</option>
+                        <option value="I22">I22 - Entrada digital 22</option>
+                        <option value="I23">I23 - Entrada digital 23</option>
+                        <option value="I24">I24 - Entrada digital 24</option>
+                      </optgroup>
+                      <optgroup label="Salidas (Q) - Lectura/Escritura">
+                        <option value="Q1">Q1 - Salida digital 1</option>
+                        <option value="Q2">Q2 - Salida digital 2</option>
+                        <option value="Q3">Q3 - Salida digital 3</option>
+                        <option value="Q4">Q4 - Salida digital 4</option>
+                        <option value="Q5">Q5 - Salida digital 5</option>
+                        <option value="Q6">Q6 - Salida digital 6</option>
+                        <option value="Q7">Q7 - Salida digital 7</option>
+                        <option value="Q8">Q8 - Salida digital 8</option>
+                        <option value="Q9">Q9 - Salida digital 9</option>
+                        <option value="Q10">Q10 - Salida digital 10</option>
+                        <option value="Q11">Q11 - Salida digital 11</option>
+                        <option value="Q12">Q12 - Salida digital 12</option>
+                        <option value="Q13">Q13 - Salida digital 13</option>
+                        <option value="Q14">Q14 - Salida digital 14</option>
+                        <option value="Q15">Q15 - Salida digital 15</option>
+                        <option value="Q16">Q16 - Salida digital 16</option>
+                        <option value="Q17">Q17 - Salida digital 17</option>
+                        <option value="Q18">Q18 - Salida digital 18</option>
+                        <option value="Q19">Q19 - Salida digital 19</option>
+                        <option value="Q20">Q20 - Salida digital 20</option>
+                      </optgroup>
+                      <optgroup label="Marcas (M) - Lectura/Escritura">
+                        <option value="M1">M1 - Marca digital 1</option>
+                        <option value="M2">M2 - Marca digital 2</option>
+                        <option value="M3">M3 - Marca digital 3</option>
+                        <option value="M4">M4 - Marca digital 4</option>
+                        <option value="M5">M5 - Marca digital 5</option>
+                        <option value="M6">M6 - Marca digital 6</option>
+                        <option value="M7">M7 - Marca digital 7</option>
+                        <option value="M8">M8 - Marca digital 8</option>
+                        <option value="M9">M9 - Marca digital 9</option>
+                        <option value="M10">M10 - Marca digital 10</option>
+                        <option value="M11">M11 - Marca digital 11</option>
+                        <option value="M12">M12 - Marca digital 12</option>
+                        <option value="M13">M13 - Marca digital 13</option>
+                        <option value="M14">M14 - Marca digital 14</option>
+                        <option value="M15">M15 - Marca digital 15</option>
+                        <option value="M16">M16 - Marca digital 16</option>
+                        <option value="M17">M17 - Marca digital 17</option>
+                        <option value="M18">M18 - Marca digital 18</option>
+                        <option value="M19">M19 - Marca digital 19</option>
+                        <option value="M20">M20 - Marca digital 20</option>
+                        <option value="M21">M21 - Marca digital 21</option>
+                        <option value="M22">M22 - Marca digital 22</option>
+                        <option value="M23">M23 - Marca digital 23</option>
+                        <option value="M24">M24 - Marca digital 24</option>
+                        <option value="M25">M25 - Marca digital 25</option>
+                        <option value="M26">M26 - Marca digital 26</option>
+                        <option value="M27">M27 - Marca digital 27</option>
+                        <option value="M28">M28 - Marca digital 28</option>
+                        <option value="M29">M29 - Marca digital 29</option>
+                        <option value="M30">M30 - Marca digital 30</option>
+                        <option value="M31">M31 - Marca digital 31</option>
+                        <option value="M32">M32 - Marca digital 32</option>
+                        <option value="M33">M33 - Marca digital 33</option>
+                        <option value="M34">M34 - Marca digital 34</option>
+                        <option value="M35">M35 - Marca digital 35</option>
+                        <option value="M36">M36 - Marca digital 36</option>
+                        <option value="M37">M37 - Marca digital 37</option>
+                        <option value="M38">M38 - Marca digital 38</option>
+                        <option value="M39">M39 - Marca digital 39</option>
+                        <option value="M40">M40 - Marca digital 40</option>
+                        <option value="M41">M41 - Marca digital 41</option>
+                        <option value="M42">M42 - Marca digital 42</option>
+                        <option value="M43">M43 - Marca digital 43</option>
+                        <option value="M44">M44 - Marca digital 44</option>
+                        <option value="M45">M45 - Marca digital 45</option>
+                        <option value="M46">M46 - Marca digital 46</option>
+                        <option value="M47">M47 - Marca digital 47</option>
+                        <option value="M48">M48 - Marca digital 48</option>
+                        <option value="M49">M49 - Marca digital 49</option>
+                        <option value="M50">M50 - Marca digital 50</option>
+                        <option value="M51">M51 - Marca digital 51</option>
+                        <option value="M52">M52 - Marca digital 52</option>
+                        <option value="M53">M53 - Marca digital 53</option>
+                        <option value="M54">M54 - Marca digital 54</option>
+                        <option value="M55">M55 - Marca digital 55</option>
+                        <option value="M56">M56 - Marca digital 56</option>
+                        <option value="M57">M57 - Marca digital 57</option>
+                        <option value="M58">M58 - Marca digital 58</option>
+                        <option value="M59">M59 - Marca digital 59</option>
+                        <option value="M60">M60 - Marca digital 60</option>
+                        <option value="M61">M61 - Marca digital 61</option>
+                        <option value="M62">M62 - Marca digital 62</option>
+                        <option value="M63">M63 - Marca digital 63</option>
+                        <option value="M64">M64 - Marca digital 64</option>
+                      </optgroup>
+                      <optgroup label="Registros V (Bits) - Lectura/Escritura">
+                        <option value="V0.0">V0.0 - Registro V0 Bit 0</option>
+                        <option value="V0.1">V0.1 - Registro V0 Bit 1</option>
+                        <option value="V0.2">V0.2 - Registro V0 Bit 2</option>
+                        <option value="V0.3">V0.3 - Registro V0 Bit 3</option>
+                        <option value="V0.4">V0.4 - Registro V0 Bit 4</option>
+                        <option value="V0.5">V0.5 - Registro V0 Bit 5</option>
+                        <option value="V0.6">V0.6 - Registro V0 Bit 6</option>
+                        <option value="V0.7">V0.7 - Registro V0 Bit 7</option>
+                        <option value="V1.0">V1.0 - Registro V1 Bit 0</option>
+                        <option value="V1.1">V1.1 - Registro V1 Bit 1</option>
+                        <option value="V1.2">V1.2 - Registro V1 Bit 2</option>
+                        <option value="V1.3">V1.3 - Registro V1 Bit 3</option>
+                        <option value="V1.4">V1.4 - Registro V1 Bit 4</option>
+                        <option value="V1.5">V1.5 - Registro V1 Bit 5</option>
+                        <option value="V1.6">V1.6 - Registro V1 Bit 6</option>
+                        <option value="V1.7">V1.7 - Registro V1 Bit 7</option>
+                        <option value="V2.0">V2.0 - Registro V2 Bit 0</option>
+                        <option value="V2.1">V2.1 - Registro V2 Bit 1</option>
+                        <option value="V2.2">V2.2 - Registro V2 Bit 2</option>
+                        <option value="V2.3">V2.3 - Registro V2 Bit 3</option>
+                        <option value="V2.4">V2.4 - Registro V2 Bit 4</option>
+                        <option value="V2.5">V2.5 - Registro V2 Bit 5</option>
+                        <option value="V2.6">V2.6 - Registro V2 Bit 6</option>
+                        <option value="V2.7">V2.7 - Registro V2 Bit 7</option>
+                      </optgroup>
+                    </select>
+                    <select class="form-select logo-mode" data-function="estado" style="max-width: 120px;">
+                      <option value="read" selected>Lectura</option>
+                      <option value="write">Escritura</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Función BLOQUEO</label>
+                  <div class="input-group">
+                    <select class="form-select logo-function" data-function="bloqueo">
+                      <option value="">Seleccionar...</option>
+                      <optgroup label="Entradas (I) - Solo lectura">
+                        <option value="I1">I1 - Entrada digital 1</option>
+                        <option value="I2">I2 - Entrada digital 2</option>
+                        <option value="I3">I3 - Entrada digital 3</option>
+                        <option value="I4">I4 - Entrada digital 4</option>
+                        <option value="I5">I5 - Entrada digital 5</option>
+                        <option value="I6">I6 - Entrada digital 6</option>
+                        <option value="I7">I7 - Entrada digital 7</option>
+                        <option value="I8">I8 - Entrada digital 8</option>
+                        <option value="I9">I9 - Entrada digital 9</option>
+                        <option value="I10">I10 - Entrada digital 10</option>
+                        <option value="I11">I11 - Entrada digital 11</option>
+                        <option value="I12">I12 - Entrada digital 12</option>
+                      </optgroup>
+                      <optgroup label="Salidas (Q) - Lectura/Escritura">
+                        <option value="Q1">Q1 - Salida digital 1</option>
+                        <option value="Q2">Q2 - Salida digital 2</option>
+                        <option value="Q3">Q3 - Salida digital 3</option>
+                        <option value="Q4">Q4 - Salida digital 4</option>
+                        <option value="Q5">Q5 - Salida digital 5</option>
+                        <option value="Q6">Q6 - Salida digital 6</option>
+                        <option value="Q7">Q7 - Salida digital 7</option>
+                        <option value="Q8">Q8 - Salida digital 8</option>
+                        <option value="Q9">Q9 - Salida digital 9</option>
+                        <option value="Q10">Q10 - Salida digital 10</option>
+                        <option value="Q11">Q11 - Salida digital 11</option>
+                        <option value="Q12">Q12 - Salida digital 12</option>
+                        <option value="Q13">Q13 - Salida digital 13</option>
+                        <option value="Q14">Q14 - Salida digital 14</option>
+                        <option value="Q15">Q15 - Salida digital 15</option>
+                        <option value="Q16">Q16 - Salida digital 16</option>
+                        <option value="Q17">Q17 - Salida digital 17</option>
+                        <option value="Q18">Q18 - Salida digital 18</option>
+                        <option value="Q19">Q19 - Salida digital 19</option>
+                        <option value="Q20">Q20 - Salida digital 20</option>
+                      </optgroup>
+                      <optgroup label="Marcas (M) - Lectura/Escritura">
+                        <option value="M1">M1 - Marca digital 1</option>
+                        <option value="M2">M2 - Marca digital 2</option>
+                        <option value="M3">M3 - Marca digital 3</option>
+                        <option value="M4">M4 - Marca digital 4</option>
+                        <option value="M5">M5 - Marca digital 5</option>
+                        <option value="M6">M6 - Marca digital 6</option>
+                        <option value="M7">M7 - Marca digital 7</option>
+                        <option value="M8">M8 - Marca digital 8</option>
+                        <option value="M9">M9 - Marca digital 9</option>
+                        <option value="M10">M10 - Marca digital 10</option>
+                        <option value="M11">M11 - Marca digital 11</option>
+                        <option value="M12">M12 - Marca digital 12</option>
+                        <option value="M13">M13 - Marca digital 13</option>
+                        <option value="M14">M14 - Marca digital 14</option>
+                        <option value="M15">M15 - Marca digital 15</option>
+                        <option value="M16">M16 - Marca digital 16</option>
+                        <option value="M17">M17 - Marca digital 17</option>
+                        <option value="M18">M18 - Marca digital 18</option>
+                        <option value="M19">M19 - Marca digital 19</option>
+                        <option value="M20">M20 - Marca digital 20</option>
+                        <option value="M21">M21 - Marca digital 21</option>
+                        <option value="M22">M22 - Marca digital 22</option>
+                        <option value="M23">M23 - Marca digital 23</option>
+                        <option value="M24">M24 - Marca digital 24</option>
+                        <option value="M25">M25 - Marca digital 25</option>
+                        <option value="M26">M26 - Marca digital 26</option>
+                        <option value="M27">M27 - Marca digital 27</option>
+                        <option value="M28">M28 - Marca digital 28</option>
+                        <option value="M29">M29 - Marca digital 29</option>
+                        <option value="M30">M30 - Marca digital 30</option>
+                        <option value="M31">M31 - Marca digital 31</option>
+                        <option value="M32">M32 - Marca digital 32</option>
+                        <option value="M33">M33 - Marca digital 33</option>
+                        <option value="M34">M34 - Marca digital 34</option>
+                        <option value="M35">M35 - Marca digital 35</option>
+                        <option value="M36">M36 - Marca digital 36</option>
+                        <option value="M37">M37 - Marca digital 37</option>
+                        <option value="M38">M38 - Marca digital 38</option>
+                        <option value="M39">M39 - Marca digital 39</option>
+                        <option value="M40">M40 - Marca digital 40</option>
+                        <option value="M41">M41 - Marca digital 41</option>
+                        <option value="M42">M42 - Marca digital 42</option>
+                        <option value="M43">M43 - Marca digital 43</option>
+                        <option value="M44">M44 - Marca digital 44</option>
+                        <option value="M45">M45 - Marca digital 45</option>
+                        <option value="M46">M46 - Marca digital 46</option>
+                        <option value="M47">M47 - Marca digital 47</option>
+                        <option value="M48">M48 - Marca digital 48</option>
+                        <option value="M49">M49 - Marca digital 49</option>
+                        <option value="M50">M50 - Marca digital 50</option>
+                        <option value="M51">M51 - Marca digital 51</option>
+                        <option value="M52">M52 - Marca digital 52</option>
+                        <option value="M53">M53 - Marca digital 53</option>
+                        <option value="M54">M54 - Marca digital 54</option>
+                        <option value="M55">M55 - Marca digital 55</option>
+                        <option value="M56">M56 - Marca digital 56</option>
+                        <option value="M57">M57 - Marca digital 57</option>
+                        <option value="M58">M58 - Marca digital 58</option>
+                        <option value="M59">M59 - Marca digital 59</option>
+                        <option value="M60">M60 - Marca digital 60</option>
+                        <option value="M61">M61 - Marca digital 61</option>
+                        <option value="M62">M62 - Marca digital 62</option>
+                        <option value="M63">M63 - Marca digital 63</option>
+                        <option value="M64">M64 - Marca digital 64</option>
+                      </optgroup>
+                      <optgroup label="Registros V (Bits) - Lectura/Escritura">
+                        <option value="V0.0">V0.0 - Registro V0 Bit 0</option>
+                        <option value="V0.1">V0.1 - Registro V0 Bit 1</option>
+                        <option value="V0.2">V0.2 - Registro V0 Bit 2</option>
+                        <option value="V0.3">V0.3 - Registro V0 Bit 3</option>
+                        <option value="V0.4">V0.4 - Registro V0 Bit 4</option>
+                        <option value="V0.5">V0.5 - Registro V0 Bit 5</option>
+                        <option value="V0.6">V0.6 - Registro V0 Bit 6</option>
+                        <option value="V0.7">V0.7 - Registro V0 Bit 7</option>
+                        <option value="V1.0">V1.0 - Registro V1 Bit 0</option>
+                        <option value="V1.1">V1.1 - Registro V1 Bit 1</option>
+                        <option value="V1.2">V1.2 - Registro V1 Bit 2</option>
+                        <option value="V1.3">V1.3 - Registro V1 Bit 3</option>
+                        <option value="V1.4">V1.4 - Registro V1 Bit 4</option>
+                        <option value="V1.5">V1.5 - Registro V1 Bit 5</option>
+                        <option value="V1.6">V1.6 - Registro V1 Bit 6</option>
+                        <option value="V1.7">V1.7 - Registro V1 Bit 7</option>
+                        <option value="V2.0">V2.0 - Registro V2 Bit 0</option>
+                        <option value="V2.1">V2.1 - Registro V2 Bit 1</option>
+                        <option value="V2.2">V2.2 - Registro V2 Bit 2</option>
+                        <option value="V2.3">V2.3 - Registro V2 Bit 3</option>
+                        <option value="V2.4">V2.4 - Registro V2 Bit 4</option>
+                        <option value="V2.5">V2.5 - Registro V2 Bit 5</option>
+                        <option value="V2.6">V2.6 - Registro V2 Bit 6</option>
+                        <option value="V2.7">V2.7 - Registro V2 Bit 7</option>
+                      </optgroup>
+                    </select>
+                    <select class="form-select logo-mode" data-function="bloqueo" style="max-width: 120px;">
+                      <option value="write">Escritura</option>
+                      <option value="read">Lectura</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="row mb-3">
+                <div class="col-md-12">
+                  <label class="form-label">Función PUNTUAL (Opcional - Acceso exclusivo para clientes)</label>
+                  <div class="input-group">
+                    <select class="form-select logo-function" data-function="puntual">
+                      <option value="">No configurado</option>
+                      <optgroup label="Entradas (I) - Solo lectura">
+                        <option value="I1">I1 - Entrada digital 1</option>
+                        <option value="I2">I2 - Entrada digital 2</option>
+                        <option value="I3">I3 - Entrada digital 3</option>
+                        <option value="I4">I4 - Entrada digital 4</option>
+                        <option value="I5">I5 - Entrada digital 5</option>
+                        <option value="I6">I6 - Entrada digital 6</option>
+                        <option value="I7">I7 - Entrada digital 7</option>
+                        <option value="I8">I8 - Entrada digital 8</option>
+                        <option value="I9">I9 - Entrada digital 9</option>
+                        <option value="I10">I10 - Entrada digital 10</option>
+                        <option value="I11">I11 - Entrada digital 11</option>
+                        <option value="I12">I12 - Entrada digital 12</option>
+                      </optgroup>
+                      <optgroup label="Salidas (Q) - Lectura/Escritura">
+                        <option value="Q1">Q1 - Salida digital 1</option>
+                        <option value="Q2">Q2 - Salida digital 2</option>
+                        <option value="Q3">Q3 - Salida digital 3</option>
+                        <option value="Q4">Q4 - Salida digital 4</option>
+                        <option value="Q5">Q5 - Salida digital 5</option>
+                        <option value="Q6">Q6 - Salida digital 6</option>
+                        <option value="Q7">Q7 - Salida digital 7</option>
+                        <option value="Q8">Q8 - Salida digital 8</option>
+                        <option value="Q9">Q9 - Salida digital 9</option>
+                        <option value="Q10">Q10 - Salida digital 10</option>
+                        <option value="Q11">Q11 - Salida digital 11</option>
+                        <option value="Q12">Q12 - Salida digital 12</option>
+                        <option value="Q13">Q13 - Salida digital 13</option>
+                        <option value="Q14">Q14 - Salida digital 14</option>
+                        <option value="Q15">Q15 - Salida digital 15</option>
+                        <option value="Q16">Q16 - Salida digital 16</option>
+                        <option value="Q17">Q17 - Salida digital 17</option>
+                        <option value="Q18">Q18 - Salida digital 18</option>
+                        <option value="Q19">Q19 - Salida digital 19</option>
+                        <option value="Q20">Q20 - Salida digital 20</option>
+                      </optgroup>
+                      <optgroup label="Marcas (M) - Lectura/Escritura">
+                        <option value="M1">M1 - Marca digital 1</option>
+                        <option value="M2">M2 - Marca digital 2</option>
+                        <option value="M3">M3 - Marca digital 3</option>
+                        <option value="M4">M4 - Marca digital 4</option>
+                        <option value="M5">M5 - Marca digital 5</option>
+                        <option value="M6">M6 - Marca digital 6</option>
+                        <option value="M7">M7 - Marca digital 7</option>
+                        <option value="M8">M8 - Marca digital 8</option>
+                        <option value="M9">M9 - Marca digital 9</option>
+                        <option value="M10">M10 - Marca digital 10</option>
+                        <option value="M11">M11 - Marca digital 11</option>
+                        <option value="M12">M12 - Marca digital 12</option>
+                        <option value="M13">M13 - Marca digital 13</option>
+                        <option value="M14">M14 - Marca digital 14</option>
+                        <option value="M15">M15 - Marca digital 15</option>
+                        <option value="M16">M16 - Marca digital 16</option>
+                        <option value="M17">M17 - Marca digital 17</option>
+                        <option value="M18">M18 - Marca digital 18</option>
+                        <option value="M19">M19 - Marca digital 19</option>
+                        <option value="M20">M20 - Marca digital 20</option>
+                        <option value="M21">M21 - Marca digital 21</option>
+                        <option value="M22">M22 - Marca digital 22</option>
+                        <option value="M23">M23 - Marca digital 23</option>
+                        <option value="M24">M24 - Marca digital 24</option>
+                        <option value="M25">M25 - Marca digital 25</option>
+                        <option value="M26">M26 - Marca digital 26</option>
+                        <option value="M27">M27 - Marca digital 27</option>
+                        <option value="M28">M28 - Marca digital 28</option>
+                        <option value="M29">M29 - Marca digital 29</option>
+                        <option value="M30">M30 - Marca digital 30</option>
+                        <option value="M31">M31 - Marca digital 31</option>
+                        <option value="M32">M32 - Marca digital 32</option>
+                        <option value="M33">M33 - Marca digital 33</option>
+                        <option value="M34">M34 - Marca digital 34</option>
+                        <option value="M35">M35 - Marca digital 35</option>
+                        <option value="M36">M36 - Marca digital 36</option>
+                        <option value="M37">M37 - Marca digital 37</option>
+                        <option value="M38">M38 - Marca digital 38</option>
+                        <option value="M39">M39 - Marca digital 39</option>
+                        <option value="M40">M40 - Marca digital 40</option>
+                        <option value="M41">M41 - Marca digital 41</option>
+                        <option value="M42">M42 - Marca digital 42</option>
+                        <option value="M43">M43 - Marca digital 43</option>
+                        <option value="M44">M44 - Marca digital 44</option>
+                        <option value="M45">M45 - Marca digital 45</option>
+                        <option value="M46">M46 - Marca digital 46</option>
+                        <option value="M47">M47 - Marca digital 47</option>
+                        <option value="M48">M48 - Marca digital 48</option>
+                        <option value="M49">M49 - Marca digital 49</option>
+                        <option value="M50">M50 - Marca digital 50</option>
+                        <option value="M51">M51 - Marca digital 51</option>
+                        <option value="M52">M52 - Marca digital 52</option>
+                        <option value="M53">M53 - Marca digital 53</option>
+                        <option value="M54">M54 - Marca digital 54</option>
+                        <option value="M55">M55 - Marca digital 55</option>
+                        <option value="M56">M56 - Marca digital 56</option>
+                        <option value="M57">M57 - Marca digital 57</option>
+                        <option value="M58">M58 - Marca digital 58</option>
+                        <option value="M59">M59 - Marca digital 59</option>
+                        <option value="M60">M60 - Marca digital 60</option>
+                        <option value="M61">M61 - Marca digital 61</option>
+                        <option value="M62">M62 - Marca digital 62</option>
+                        <option value="M63">M63 - Marca digital 63</option>
+                        <option value="M64">M64 - Marca digital 64</option>
+                      </optgroup>
+                      <optgroup label="Registros V (Bits) - Lectura/Escritura">
+                        <option value="V0.0">V0.0 - Registro V0 Bit 0</option>
+                        <option value="V0.1">V0.1 - Registro V0 Bit 1</option>
+                        <option value="V0.2">V0.2 - Registro V0 Bit 2</option>
+                        <option value="V0.3">V0.3 - Registro V0 Bit 3</option>
+                        <option value="V0.4">V0.4 - Registro V0 Bit 4</option>
+                        <option value="V0.5">V0.5 - Registro V0 Bit 5</option>
+                        <option value="V0.6">V0.6 - Registro V0 Bit 6</option>
+                        <option value="V0.7">V0.7 - Registro V0 Bit 7</option>
+                        <option value="V1.0">V1.0 - Registro V1 Bit 0</option>
+                        <option value="V1.1">V1.1 - Registro V1 Bit 1</option>
+                        <option value="V1.2">V1.2 - Registro V1 Bit 2</option>
+                        <option value="V1.3">V1.3 - Registro V1 Bit 3</option>
+                        <option value="V1.4">V1.4 - Registro V1 Bit 4</option>
+                        <option value="V1.5">V1.5 - Registro V1 Bit 5</option>
+                        <option value="V1.6">V1.6 - Registro V1 Bit 6</option>
+                        <option value="V1.7">V1.7 - Registro V1 Bit 7</option>
+                        <option value="V2.0">V2.0 - Registro V2 Bit 0</option>
+                        <option value="V2.1">V2.1 - Registro V2 Bit 1</option>
+                        <option value="V2.2">V2.2 - Registro V2 Bit 2</option>
+                        <option value="V2.3">V2.3 - Registro V2 Bit 3</option>
+                        <option value="V2.4">V2.4 - Registro V2 Bit 4</option>
+                        <option value="V2.5">V2.5 - Registro V2 Bit 5</option>
+                        <option value="V2.6">V2.6 - Registro V2 Bit 6</option>
+                        <option value="V2.7">V2.7 - Registro V2 Bit 7</option>
+                      </optgroup>
+                    </select>
+                    <select class="form-select logo-mode" data-function="puntual" style="max-width: 120px;">
+                      <option value="write">Escritura</option>
+                      <option value="read">Lectura</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Configuración flexible LOGO!:</strong>
+                <ul class="mb-0">
+                  <li>Cualquier función puede usar cualquier tipo de elemento (I, Q, M, V)</li>
+                  <li>Seleccione "Lectura" o "Escritura" según su necesidad</li>
+                  <li>El sistema mapeará automáticamente las direcciones Modbus según el estándar LOGO!</li>
+                  <li>Las entradas (I) normalmente son solo lectura en el hardware</li>
+                </ul>
+              </div>
+            </div>
+            
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="pilona-latitud" class="form-label">Latitud</label>
+                <input type="number" step="any" class="form-control" id="pilona-latitud" required>
+              </div>
+              <div class="col-md-6">
+                <label for="pilona-longitud" class="form-label">Longitud</label>
+                <input type="number" step="any" class="form-control" id="pilona-longitud" required>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Mapa (Selecciona la ubicación)</label>
+              <div id="mapa-seleccion" style="height: 300px;"></div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="btn-guardar-pilona">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- Modal para confirmación de eliminación -->
+  <div class="modal fade" id="modal-confirmar" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">Confirmar Eliminación</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p id="mensaje-confirmar">¿Estás seguro de que deseas eliminar este elemento?</p>
+          <input type="hidden" id="confirmar-id">
+          <input type="hidden" id="confirmar-tipo">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-danger" id="btn-confirmar-eliminar">Eliminar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- Modal para ver perfil de usuario -->
+  <div class="modal fade" id="modal-perfil" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title">Mi Perfil</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="text-center mb-4">
+            <div class="avatar bg-primary text-white d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 80px; height: 80px; font-size: 2rem;">
+              <i class="fas fa-user"></i>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-sm-4 text-sm-end fw-bold">Nombre:</div>
+            <div class="col-sm-8" id="perfil-nombre"></div>
+          </div>
+          <div class="row mt-2">
+            <div class="col-sm-4 text-sm-end fw-bold">Email:</div>
+            <div class="col-sm-8" id="perfil-email"></div>
+          </div>
+          <div class="row mt-2">
+            <div class="col-sm-4 text-sm-end fw-bold">Rol:</div>
+            <div class="col-sm-8" id="perfil-rol"></div>
+          </div>
+          <div class="row mt-2">
+            <div class="col-sm-4 text-sm-end fw-bold">Desde:</div>
+            <div class="col-sm-8" id="perfil-fecha-inicio"></div>
+          </div>
+          <hr>
+          <div class="d-grid">
+            <button class="btn btn-outline-primary" id="btn-editar-perfil">
+              <i class="fas fa-edit me-2"></i>Editar Información
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal para crear/editar usuario -->
+  <div class="modal fade" id="modal-usuario" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="modal-usuario-titulo">Nuevo Usuario</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Sistema de Control de Acceso:</strong> Complete todos los campos requeridos para crear un nuevo usuario en el sistema.
+          </div>
+          <form id="form-usuario">
+            <input type="hidden" id="usuario-id">
+            
+            <!-- Información Básica -->
+            <div class="card mb-4">
+              <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="fas fa-user me-2"></i>Información Básica</h6>
+              </div>
+              <div class="card-body">
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label for="usuario-nombre" class="form-label">Nombre Completo <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="usuario-nombre" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="usuario-email" class="form-label">Correo Electrónico <span class="text-danger">*</span></label>
+                    <input type="email" class="form-control" id="usuario-email" required>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label for="usuario-password" class="form-label">Contraseña <span class="text-danger">*</span></label>
+                    <input type="password" class="form-control" id="usuario-password" required>
+                    <small class="text-muted">Mínimo 6 caracteres</small>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="usuario-password-confirm" class="form-label">Confirmar Contraseña <span class="text-danger">*</span></label>
+                    <input type="password" class="form-control" id="usuario-password-confirm" required>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label for="usuario-rol" class="form-label">Rol de Usuario <span class="text-danger">*</span></label>
+                    <select class="form-select" id="usuario-rol" required>
+                      <option value="">Seleccionar rol...</option>
+                      <option value="cliente">Cliente - Acceso limitado a pilonas asignadas</option>
+                      <option value="operador">Operador - Control de pilonas sin bloqueos</option>
+                      <option value="administrador">Administrador - Control total del sistema</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Estado del Usuario</label>
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" id="usuario-activo" checked>
+                      <label class="form-check-label" for="usuario-activo">
+                        Usuario Activo
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Información Personal -->
+            <div class="card mb-4">
+              <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="fas fa-id-card me-2"></i>Información Personal</h6>
+              </div>
+              <div class="card-body">
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label for="usuario-dni" class="form-label">DNI/NIE</label>
+                    <input type="text" class="form-control" id="usuario-dni" placeholder="12345678A">
+                  </div>
+                  <div class="col-md-6">
+                    <label for="usuario-matricula" class="form-label">Matrícula del Vehículo</label>
+                    <input type="text" class="form-control" id="usuario-matricula" placeholder="1234-ABC">
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label for="usuario-telefono" class="form-label">Teléfono</label>
+                    <input type="tel" class="form-control" id="usuario-telefono" placeholder="+34 600 123 456">
+                  </div>
+                  <div class="col-md-6">
+                    <label for="usuario-direccion" class="form-label">Dirección</label>
+                    <input type="text" class="form-control" id="usuario-direccion" placeholder="Calle, número, ciudad">
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Control de Acceso -->
+            <div class="card mb-4">
+              <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="fas fa-key me-2"></i>Control de Acceso</h6>
+              </div>
+              <div class="card-body">
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label for="usuario-tipo-acceso" class="form-label">Tipo de Acceso</label>
+                    <select class="form-select" id="usuario-tipo-acceso">
+                      <option value="">Seleccionar tipo...</option>
+                      <option value="permanente">Permanente</option>
+                      <option value="temporal">Temporal</option>
+                      <option value="puntual">Puntual</option>
+                      <option value="restringido">Restringido</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="usuario-fecha-inicio" class="form-label">Fecha de Inicio</label>
+                    <input type="date" class="form-control" id="usuario-fecha-inicio">
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label for="usuario-fecha-final" class="form-label">Fecha de Finalización</label>
+                    <input type="date" class="form-control" id="usuario-fecha-final">
+                    <small class="text-muted">Dejar vacío para acceso indefinido</small>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="usuario-fecha-renovacion" class="form-label">Próxima Renovación</label>
+                    <input type="date" class="form-control" id="usuario-fecha-renovacion">
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <div class="col-12">
+                    <label for="usuario-comentarios" class="form-label">Comentarios/Observaciones</label>
+                    <textarea class="form-control" id="usuario-comentarios" rows="3" placeholder="Comentarios adicionales sobre el usuario o su acceso..."></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="btn-guardar-usuario">
+            <i class="fas fa-save me-2"></i>Guardar Usuario
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal para crear/editar zona -->
+  <div class="modal fade" id="modal-zona" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="modal-zona-titulo">Nueva Zona</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="form-zona">
+            <input type="hidden" id="zona-id">
+            <div class="mb-3">
+              <label for="zona-nombre" class="form-label">Nombre de la Zona <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="zona-nombre" required placeholder="Ej: Zona Centro, Zona Norte">
+            </div>
+            <div class="mb-3">
+              <label for="zona-descripcion" class="form-label">Descripción</label>
+              <textarea class="form-control" id="zona-descripcion" rows="3" placeholder="Descripción de la zona y sus características..."></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="btn-guardar-zona">
+            <i class="fas fa-save me-2"></i>Guardar Zona
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal para gestionar pilonas de una zona -->
+  <div class="modal fade" id="modal-pilonas-zona" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="pilonas-zona-titulo">Pilonas asignadas a la zona</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Pilonas asignadas -->
+          <div class="card mb-4">
+            <div class="card-header bg-light">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Pilonas asignadas</h6>
+                <span class="badge bg-primary" id="contador-pilonas-zona">0 pilonas</span>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead class="table-light">
+                    <tr>
+                      <th>ID</th>
+                      <th>Nombre</th>
+                      <th>Dirección IP</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabla-pilonas-zona">
+                    <!-- Se llenará con JavaScript -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Asignar nueva pilona -->
+          <div class="card">
+            <div class="card-header bg-light">
+              <h6 class="mb-0">Asignar nueva pilona</h6>
+            </div>
+            <div class="card-body">
+              <form id="form-asignar-pilona-zona" class="row g-3">
+                <div class="col-md-10">
+                  <label for="select-pilonas-disponibles" class="form-label">Pilona</label>
+                  <select class="form-select" id="select-pilonas-disponibles" required>
+                    <option value="">Seleccionar pilona...</option>
+                    <!-- Se llenará con JavaScript -->
+                  </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                  <button type="submit" class="btn btn-primary w-100" id="btn-asignar-pilona-zona">
+                    <i class="fas fa-plus"></i> Asignar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal para gestionar zonas de usuario -->
+  <div class="modal fade" id="modal-zonas-usuario" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="zonas-usuario-titulo">Zonas asignadas al usuario</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Zonas asignadas -->
+          <div class="card mb-4">
+            <div class="card-header bg-light">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Zonas asignadas</h6>
+                <span class="badge bg-primary" id="contador-zonas">0 zonas</span>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead class="table-light">
+                    <tr>
+                      <th>ID</th>
+                      <th>Nombre</th>
+                      <th>Descripción</th>
+                      <th>Permisos</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabla-zonas-usuario">
+                    <!-- Se llenará con JavaScript -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Asignar nueva zona -->
+          <div class="card">
+            <div class="card-header bg-light">
+              <h6 class="mb-0">Asignar nueva zona</h6>
+            </div>
+            <div class="card-body">
+              <form id="form-asignar-zona" class="row g-3">
+                <div class="col-md-6">
+                  <label for="select-zonas-disponibles" class="form-label">Zona</label>
+                  <select class="form-select" id="select-zonas-disponibles" required>
+                    <option value="">Seleccionar zona...</option>
+                    <!-- Se llenará con JavaScript -->
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label for="select-permisos-zona" class="form-label">Permisos</label>
+                  <select class="form-select" id="select-permisos-zona" required>
+                    <option value="bajar">Solo bajar</option>
+                    <option value="subir,bajar">Subir y bajar</option>
+                    <option value="completo">Control completo</option>
+                  </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                  <button type="submit" class="btn btn-primary w-100" id="btn-asignar-zona">
+                    <i class="fas fa-plus"></i> Asignar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal para festivos -->
+  <div class="modal fade modal-calendario" id="modal-festivo" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="modal-festivo-titulo">Nuevo Festivo</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="form-festivo">
+            <input type="hidden" id="festivo-id">
+            <div class="mb-3">
+              <label for="festivo-fecha" class="form-label">Fecha <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" id="festivo-fecha" required>
+            </div>
+            <div class="mb-3">
+              <label for="festivo-nombre" class="form-label">Nombre <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="festivo-nombre" required placeholder="Ej: Día de la Constitución">
+            </div>
+            <div class="mb-3">
+              <label for="festivo-tipo" class="form-label">Tipo</label>
+              <select class="form-select" id="festivo-tipo">
+                <option value="local">Local</option>
+                <option value="nacional">Nacional</option>
+                <option value="personalizado">Personalizado</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="festivo-descripcion" class="form-label">Descripción</label>
+              <textarea class="form-control" id="festivo-descripcion" rows="2"></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" form="form-festivo" class="btn btn-primary">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal para programaciones -->
+  <div class="modal fade modal-calendario" id="modal-programacion" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="modal-programacion-titulo">Nueva Programación</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="form-programacion">
+            <input type="hidden" id="programacion-id">
+            
+            <!-- Información básica -->
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="programacion-nombre" class="form-label">Nombre <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="programacion-nombre" required placeholder="Ej: Cierre nocturno">
+              </div>
+              <div class="col-md-6">
+                <label for="programacion-tipo" class="form-label">Tipo <span class="text-danger">*</span></label>
+                <select class="form-select" id="programacion-tipo" required>
+                  <option value="diaria">Diaria</option>
+                  <option value="semanal">Semanal</option>
+                  <option value="fecha_especifica">Fechas específicas</option>
+                  <option value="festivos">Días festivos</option>
+                </select>
+              </div>
+            </div>
+            
+            <!-- Horario -->
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="programacion-hora-inicio" class="form-label">Hora de inicio <span class="text-danger">*</span></label>
+                <input type="time" class="form-control" id="programacion-hora-inicio" required>
+              </div>
+              <div class="col-md-6">
+                <label for="programacion-hora-fin" class="form-label">Hora de fin</label>
+                <input type="time" class="form-control" id="programacion-hora-fin">
+                <small class="text-muted">Si se especifica, se revertirá la acción</small>
+              </div>
+            </div>
+            
+            <!-- Acción y prioridad -->
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="programacion-accion" class="form-label">Acción <span class="text-danger">*</span></label>
+                <select class="form-select" id="programacion-accion" required>
+                  <option value="subir">Subir pilonas</option>
+                  <option value="bajar">Bajar pilonas</option>
+                  <option value="bloquear_arriba">Bloquear arriba</option>
+                  <option value="bloquear_abajo">Bloquear abajo</option>
+                  <option value="desbloquear">Desbloquear</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label for="programacion-prioridad" class="form-label">Prioridad</label>
+                <input type="number" class="form-control" id="programacion-prioridad" value="0" min="0" max="100">
+                <small class="text-muted">Mayor número = mayor prioridad</small>
+              </div>
+            </div>
+            
+            <!-- Campos específicos según el tipo -->
+            <div id="campo-dias-semana" style="display: none;">
+              <label class="form-label">Días de la semana</label>
+              <div id="dias-semana" class="seleccion-multiple">
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" value="0" id="dia-0">
+                  <label class="form-check-label" for="dia-0">Domingo</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" value="1" id="dia-1">
+                  <label class="form-check-label" for="dia-1">Lunes</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" value="2" id="dia-2">
+                  <label class="form-check-label" for="dia-2">Martes</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" value="3" id="dia-3">
+                  <label class="form-check-label" for="dia-3">Miércoles</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" value="4" id="dia-4">
+                  <label class="form-check-label" for="dia-4">Jueves</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" value="5" id="dia-5">
+                  <label class="form-check-label" for="dia-5">Viernes</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" value="6" id="dia-6">
+                  <label class="form-check-label" for="dia-6">Sábado</label>
+                </div>
+              </div>
+            </div>
+            
+            <div id="campo-fechas-especificas" style="display: none;" class="mb-3">
+              <label for="fechas-especificas" class="form-label">Fechas específicas (una por línea)</label>
+              <textarea class="form-control" id="fechas-especificas" rows="3" placeholder="2025-12-25&#10;2025-12-31"></textarea>
+            </div>
+            
+            <!-- Selección de pilonas/zonas -->
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Pilonas</label>
+                <div id="programacion-pilonas" class="seleccion-multiple">
+                  <!-- Se llenará con JavaScript -->
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Zonas</label>
+                <div id="programacion-zonas" class="seleccion-multiple">
+                  <!-- Se llenará con JavaScript -->
+                </div>
+              </div>
+            </div>
+            
+            <!-- Excepciones -->
+            <div class="mb-3">
+              <label for="fechas-excepcion" class="form-label">Fechas de excepción (no se ejecutará)</label>
+              <textarea class="form-control" id="fechas-excepcion" rows="2" placeholder="2025-12-25&#10;2025-01-01"></textarea>
+            </div>
+            
+            <!-- Estado -->
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="programacion-activa" checked>
+              <label class="form-check-label" for="programacion-activa">
+                Programación activa
+              </label>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" form="form-programacion" class="btn btn-primary">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal para detalles del día -->
+  <div class="modal fade" id="modal-dia-detalle" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title">Detalles del día</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="dia-detalle-header">
+            <h5 id="dia-detalle-fecha"></h5>
+          </div>
+          <div id="dia-detalle-festivo"></div>
+          <div id="dia-detalle-programaciones"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+<!-- Librer��as de terceros -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/socket.io-client@4/dist/socket.io.min.js"></script>
+
+<!-- Scripts de la aplicaci��n -->
+<script src="js/websocket-manager.js"></script>
+<script src="js/alertas-utils.js"></script>
+<script src="js/calendario-ui.js"></script>
+<script src="js/client-interface.js"></script>
+<script src="js/correcciones-finales.js"></script>
+<script src="js/fix-test-panel.js"></script>
+<script src="js/form-validation.js"></script>
+<script src="js/gestion-zonas.js"></script>
+<script src="js/global-cache-manager.js"></script>
+<script src="js/logo-config.js"></script>
+<script src="js/main.js"></script>
+<script src="js/modo-pruebas-handler.js"></script>
+<script src="js/panel-pruebas-mejorado.js"></script>
+<script src="js/pilona-realtime-test.js"></script>
+<script src="js/pilona-test-panel.js"></script>
+<script src="js/test-connection.js"></script>
+<script src="js/usuarios-mejorado.js"></script>
+<script src="js/usuarios-zonas-manager.js"></script>
+<script src="js/zonas-usuario.js"></script>
+
+<!-- Script de verificaci��n del sistema de cach�� - comentado por defecto -->
+<!-- <script src="js/verificar-sistema-cache.js"></script> -->
+
+</html>

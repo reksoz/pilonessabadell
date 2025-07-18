@@ -1,0 +1,61 @@
+/* estados-fallo.css - Estilos para estados de fallo de pilonas */
+
+/* Badge con animación intermitente para fallo */
+.badge-fallo-intermitente {
+  background-color: #FFA500 !important; /* Naranja */
+  color: white !important;
+  animation: parpadeo 1s ease-in-out infinite;
+}
+
+/* Marcador en el mapa con fallo */
+.pilona-marker-fallo {
+  animation: parpadeo-suave 1.5s ease-in-out infinite;
+}
+
+/* Animación de parpadeo para el badge */
+@keyframes parpadeo {
+  0%, 100% {
+    opacity: 1;
+    background-color: #FFA500;
+  }
+  50% {
+    opacity: 0.3;
+    background-color: #FFD700;
+  }
+}
+
+/* Animación más suave para marcadores del mapa */
+@keyframes parpadeo-suave {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+/* Icono de advertencia en marcadores con fallo */
+.pilona-marker-fallo .fa-exclamation-triangle {
+  animation: pulse-warning 1s ease-in-out infinite;
+}
+
+@keyframes pulse-warning {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+/* Color adicional para fallo en elementos de texto */
+.text-fallo {
+  color: #FFA500 !important;
+}
+
+/* Fondo para elementos con fallo */
+.bg-fallo {
+  background-color: #FFA500 !important;
+}

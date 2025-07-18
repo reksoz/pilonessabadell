@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="0; url=http://213.96.33.84:9008/login.html">
+  <title>Redirigiendo...</title>
+  <script>
+    // Múltiples métodos de redirección para asegurar que funcione
+    if (window.location.protocol === 'https:' || window.location.port !== '9008') {
+      // Método 1: location.replace
+      window.location.replace('http://213.96.33.84:9008/login.html');
+      
+      // Método 2: location.href
+      window.location.href = 'http://213.96.33.84:9008/login.html';
+      
+      // Método 3: location.assign
+      window.location.assign('http://213.96.33.84:9008/login.html');
+    }
+  </script>
+</head>
+<body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+  <h2>Redirigiendo al sistema...</h2>
+  <p>Por favor espere un momento.</p>
+  <p>Si no es redirigido automáticamente, haga clic en el siguiente enlace:</p>
+  <a href="http://213.96.33.84:9008/login.html" style="color: #007bff; text-decoration: none; font-weight: bold;">
+    Acceder al Sistema de Control de Pilonas
+  </a>
+  <hr style="margin: 30px auto; width: 50%;">
+  <p style="color: #666; font-size: 14px;">
+    Nota: Este sistema requiere conexión HTTP en el puerto 9008.
+  </p>
+</body>
+</html>
